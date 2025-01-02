@@ -40,19 +40,31 @@ const MemberProfileCard = ({ memberProfile }: MemberProfileCardProps) => {
               <p className="text-dashboard-text">Member #{memberProfile?.member_number}</p>
               <p className="text-dashboard-text">Email: {memberProfile?.email || 'Not provided'}</p>
               <p className="text-dashboard-text">Phone: {memberProfile?.phone || 'Not provided'}</p>
-              <p className="text-dashboard-text">
-                Status: {' '}
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  memberProfile?.status === 'active' 
-                    ? 'bg-dashboard-accent3/20 text-dashboard-accent3' 
-                    : 'bg-dashboard-muted/20 text-dashboard-muted'
-                }`}>
-                  {memberProfile?.status || 'Pending'}
-                </span>
-              </p>
-              <p className="text-dashboard-text">
-                Membership Type: {memberProfile?.membership_type || 'Standard'}
-              </p>
+              <div className="mt-2">
+                <p className="text-dashboard-muted mb-1">Address</p>
+                <p className="text-dashboard-text">
+                  {memberProfile?.address || 'No street address provided'}
+                </p>
+                <p className="text-dashboard-text">
+                  {memberProfile?.town ? `${memberProfile.town}` : 'No town provided'}
+                  {memberProfile?.postcode ? `, ${memberProfile.postcode}` : ''}
+                </p>
+              </div>
+              <div className="mt-2">
+                <p className="text-dashboard-text">
+                  Status: {' '}
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    memberProfile?.status === 'active' 
+                      ? 'bg-dashboard-accent3/20 text-dashboard-accent3' 
+                      : 'bg-dashboard-muted/20 text-dashboard-muted'
+                  }`}>
+                    {memberProfile?.status || 'Pending'}
+                  </span>
+                </p>
+                <p className="text-dashboard-text">
+                  Membership Type: {memberProfile?.membership_type || 'Standard'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
