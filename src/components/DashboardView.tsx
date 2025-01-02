@@ -18,19 +18,41 @@ const DashboardView = ({ onLogout }: DashboardViewProps) => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error('No user logged in');
 
+      // First get the member number from the user metadata
+      const { data: { user } } = await supabase.auth.getUser();
+      const memberNumber = user?.user_metadata?.member_number;
+      
+      if (!memberNumber) {
+        console.error('No member number found in user metadata');
+        throw new Error('Member number not found');
+      }
+
+      console.log('Fetching member with number:', memberNumber);
+      
       const { data, error } = await supabase
         .from('members')
         .select('*')
-        .eq('auth_user_id', session.user.id)
+        .eq('member_number', memberNumber)
         .maybeSingle();
 
       if (error) {
+        console.error('Error fetching member:', error);
         toast({
           variant: "destructive",
           title: "Error fetching member profile",
           description: error.message
         });
         throw error;
+      }
+
+      if (!data) {
+        console.error('No member found with number:', memberNumber);
+        toast({
+          variant: "destructive",
+          title: "Member not found",
+          description: "Could not find your member profile"
+        });
+        throw new Error('Member not found');
       }
       
       return data;
