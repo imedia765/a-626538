@@ -7,4 +7,7 @@ export interface Member {
   status?: string;
   membership_type?: string;
   auth_user_id?: string;
+  address?: string;
+  town?: string;
+  postcode?: string;
 }
