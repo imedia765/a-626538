@@ -29,11 +29,14 @@ const DashboardView = ({ onLogout }: DashboardViewProps) => {
 
       console.log('Fetching member with number:', memberNumber);
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('members')
-        .select('*')
-        .eq('member_number', memberNumber)
-        .maybeSingle();
+        .select('*');
+      
+      // Use the same OR condition approach as MembersList for more flexible matching
+      query = query.or(`member_number.eq.${memberNumber},auth_user_id.eq.${session.user.id}`);
+      
+      const { data, error } = await query.maybeSingle();
 
       if (error) {
         console.error('Error fetching member:', error);
