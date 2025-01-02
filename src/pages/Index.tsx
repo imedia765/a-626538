@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import DashboardView from '@/components/DashboardView';
 import MembersList from '@/components/MembersList';
+import CollectorsList from '@/components/CollectorsList';
 import SidePanel from '@/components/SidePanel';
 import TotalCount from '@/components/TotalCount';
 import MemberSearch from '@/components/MemberSearch';
@@ -67,6 +68,16 @@ const Index = () => {
               onSearchChange={setSearchTerm}
             />
             <MembersList searchTerm={searchTerm} />
+          </>
+        );
+      case 'collectors':
+        return (
+          <>
+            <header className="mb-8">
+              <h1 className="text-3xl font-medium mb-2 text-white">Collectors</h1>
+              <p className="text-dashboard-muted">View and manage collector information</p>
+            </header>
+            <CollectorsList />
           </>
         );
       case 'settings':
