@@ -63,6 +63,10 @@ export type Database = {
           created_by: string | null
           date_of_birth: string | null
           email: string | null
+          emergency_collection_amount: number | null
+          emergency_collection_created_at: string | null
+          emergency_collection_due_date: string | null
+          emergency_collection_status: string | null
           family_member_dob: string | null
           family_member_gender: string | null
           family_member_name: string | null
@@ -87,6 +91,9 @@ export type Database = {
           town: string | null
           updated_at: string
           verified: boolean | null
+          yearly_payment_amount: number | null
+          yearly_payment_due_date: string | null
+          yearly_payment_status: string | null
         }
         Insert: {
           address?: string | null
@@ -99,6 +106,10 @@ export type Database = {
           created_by?: string | null
           date_of_birth?: string | null
           email?: string | null
+          emergency_collection_amount?: number | null
+          emergency_collection_created_at?: string | null
+          emergency_collection_due_date?: string | null
+          emergency_collection_status?: string | null
           family_member_dob?: string | null
           family_member_gender?: string | null
           family_member_name?: string | null
@@ -123,6 +134,9 @@ export type Database = {
           town?: string | null
           updated_at?: string
           verified?: boolean | null
+          yearly_payment_amount?: number | null
+          yearly_payment_due_date?: string | null
+          yearly_payment_status?: string | null
         }
         Update: {
           address?: string | null
@@ -135,6 +149,10 @@ export type Database = {
           created_by?: string | null
           date_of_birth?: string | null
           email?: string | null
+          emergency_collection_amount?: number | null
+          emergency_collection_created_at?: string | null
+          emergency_collection_due_date?: string | null
+          emergency_collection_status?: string | null
           family_member_dob?: string | null
           family_member_gender?: string | null
           family_member_name?: string | null
@@ -159,6 +177,9 @@ export type Database = {
           town?: string | null
           updated_at?: string
           verified?: boolean | null
+          yearly_payment_amount?: number | null
+          yearly_payment_due_date?: string | null
+          yearly_payment_status?: string | null
         }
         Relationships: []
       }
@@ -259,6 +280,12 @@ export type Database = {
       is_admin: {
         Args: {
           user_uid: string
+        }
+        Returns: boolean
+      }
+      is_payment_overdue: {
+        Args: {
+          due_date: string
         }
         Returns: boolean
       }
