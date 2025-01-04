@@ -31,7 +31,7 @@ const DashboardView = ({ onLogout }: DashboardViewProps) => {
   const { data: memberProfile, isError, error, isLoading } = useQuery({
     queryKey: ['memberProfile'],
     queryFn: async () => {
-      console.log('Fetching member profile...');
+      console.log('Starting member profile fetch...');
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
@@ -39,11 +39,14 @@ const DashboardView = ({ onLogout }: DashboardViewProps) => {
         throw new Error('No active session');
       }
 
-      console.log('Session found:', session.user.id);
+      console.log('Session user ID:', session.user.id);
+      console.log('User metadata:', session.user.user_metadata);
 
       // First get the member number from the user metadata
       const { data: { user } } = await supabase.auth.getUser();
       const memberNumber = user?.user_metadata?.member_number;
+      
+      console.log('Retrieved member number from metadata:', memberNumber);
       
       if (!memberNumber) {
         console.error('No member number found in user metadata');
@@ -59,15 +62,17 @@ const DashboardView = ({ onLogout }: DashboardViewProps) => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching member:', error);
+        console.error('Database error fetching member:', error);
         throw error;
       }
 
       if (!data) {
         console.error('No member found with number:', memberNumber);
+        console.log('Full query result:', { data, error });
         throw new Error('Member not found');
       }
       
+      console.log('Successfully retrieved member data:', data);
       return data;
     },
     retry: 1,
