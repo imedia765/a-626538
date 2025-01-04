@@ -12,4 +12,8 @@ export interface Member {
   postcode?: string;
   role?: string;
   collector_id?: string;
+  payment_amount?: number;
+  payment_type?: string;
+  payment_date?: string;
+  payment_notes?: string;
 }
