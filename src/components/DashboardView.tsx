@@ -14,7 +14,6 @@ const DashboardView = ({ onLogout }: DashboardViewProps) => {
 
   const handleLogout = async () => {
     try {
-      // Invalidate all queries before logout
       await queryClient.invalidateQueries();
       await supabase.auth.signOut();
       onLogout();
@@ -31,49 +30,58 @@ const DashboardView = ({ onLogout }: DashboardViewProps) => {
   const { data: memberProfile, isError, error, isLoading } = useQuery({
     queryKey: ['memberProfile'],
     queryFn: async () => {
-      console.log('Starting member profile fetch...');
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        console.error('No active session found');
-        throw new Error('No active session');
-      }
+      try {
+        console.log('Starting member profile fetch...');
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.user) {
+          console.error('No active session found');
+          throw new Error('No active session');
+        }
 
-      console.log('Session user ID:', session.user.id);
-      console.log('User metadata:', session.user.user_metadata);
+        console.log('Session found:', {
+          userId: session.user.id,
+          metadata: session.user.user_metadata
+        });
 
-      // First get the member number from the user metadata
-      const { data: { user } } = await supabase.auth.getUser();
-      const memberNumber = user?.user_metadata?.member_number;
-      
-      console.log('Retrieved member number from metadata:', memberNumber);
-      
-      if (!memberNumber) {
-        console.error('No member number found in user metadata');
-        throw new Error('Member number not found');
-      }
+        // First get the member number from the user metadata
+        const memberNumber = session.user.user_metadata?.member_number;
+        console.log('Member number from metadata:', memberNumber);
+        
+        if (!memberNumber) {
+          console.error('No member number in metadata');
+          throw new Error('Member number not found');
+        }
 
-      console.log('Fetching member with number:', memberNumber);
-      
-      const { data, error } = await supabase
-        .from('members')
-        .select('*')
-        .or(`member_number.eq.${memberNumber},auth_user_id.eq.${session.user.id}`)
-        .maybeSingle();
+        // Query the members table
+        console.log('Querying members table with:', {
+          memberNumber: memberNumber,
+          userId: session.user.id
+        });
+        
+        const { data, error } = await supabase
+          .from('members')
+          .select('*')
+          .or(`member_number.eq.${memberNumber},auth_user_id.eq.${session.user.id}`)
+          .maybeSingle();
 
-      if (error) {
-        console.error('Database error fetching member:', error);
+        if (error) {
+          console.error('Database error:', error);
+          throw error;
+        }
+
+        console.log('Query result:', data);
+
+        if (!data) {
+          console.error('No member found with number:', memberNumber);
+          throw new Error('Member not found');
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Error in member profile query:', error);
         throw error;
       }
-
-      if (!data) {
-        console.error('No member found with number:', memberNumber);
-        console.log('Full query result:', { data, error });
-        throw new Error('Member not found');
-      }
-      
-      console.log('Successfully retrieved member data:', data);
-      return data;
     },
     retry: 1,
   });
@@ -84,7 +92,6 @@ const DashboardView = ({ onLogout }: DashboardViewProps) => {
 
   if (isError) {
     console.error('Error in member profile query:', error);
-    // Show error toast and redirect to login if session is invalid
     if (error instanceof Error && error.message === 'No active session') {
       toast({
         title: "Session Expired",
