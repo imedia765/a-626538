@@ -10,4 +10,6 @@ export interface Member {
   address?: string;
   town?: string;
   postcode?: string;
+  role?: string;
+  collector_id?: string;
 }

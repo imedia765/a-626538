@@ -1,11 +1,13 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import JSZip from 'jszip';
 import { Database } from '@/integrations/supabase/types';
 
 type Member = Database['public']['Tables']['members']['Row'];
+type ProgressCallback = (current: number, total: number, collector: string) => void;
 
 export const generateMembersPDF = (members: Member[], title: string = 'Members Report') => {
-  const doc = new jsPDF('landscape'); // Switch to landscape for more space
+  const doc = new jsPDF('landscape');
   console.log('Generating PDF for', members.length, 'members');
   
   // Add title and date
@@ -28,7 +30,6 @@ export const generateMembersPDF = (members: Member[], title: string = 'Members R
   console.log('Grouped members by collector:', Object.keys(membersByCollector).length, 'collectors');
 
   let startY = 40;
-  let currentPage = 1;
 
   // Define table columns with optimized widths for landscape mode
   const columns = [
@@ -128,9 +129,56 @@ export const generateMembersPDF = (members: Member[], title: string = 'Members R
     startY = finalY + 15;
   });
 
-  // Save the PDF with a formatted date in the filename
+  return doc;
+};
+
+export const generateCollectorZip = async (
+  members: Member[], 
+  onProgress?: ProgressCallback
+) => {
+  const zip = new JSZip();
   const date = new Date().toISOString().split('T')[0];
-  const filename = `members-report-${date}.pdf`;
-  console.log('Saving PDF as:', filename);
-  doc.save(filename);
+
+  // Group members by collector
+  const membersByCollector = members.reduce((acc, member) => {
+    const collector = member.collector || 'Unassigned';
+    if (!acc[collector]) {
+      acc[collector] = [];
+    }
+    acc[collector].push(member);
+    return acc;
+  }, {} as Record<string, Member[]>);
+
+  const collectors = Object.entries(membersByCollector);
+  const totalCollectors = collectors.length;
+  console.log(`Starting ZIP generation for ${totalCollectors} collectors`);
+
+  // Generate PDF for each collector
+  for (let i = 0; i < collectors.length; i++) {
+    const [collector, collectorMembers] = collectors[i];
+    
+    console.log(`Processing collector ${collector} with ${collectorMembers.length} members`);
+    onProgress?.(i + 1, totalCollectors, collector);
+
+    const doc = generateMembersPDF(collectorMembers, `Members List - Collector: ${collector}`);
+    const pdfContent = doc.output('arraybuffer');
+    const filename = `collector-${collector.toLowerCase().replace(/\s+/g, '-')}-${date}.pdf`;
+    zip.file(filename, pdfContent);
+
+    // Add a small delay between processing each collector to prevent memory issues
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  console.log('Finished processing all collectors, generating ZIP file');
+  // Generate and download the zip file
+  const content = await zip.generateAsync({ type: 'blob' });
+  const zipFilename = `collectors-reports-${date}.zip`;
+  
+  // Create a download link and trigger the download
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(content);
+  link.download = zipFilename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };

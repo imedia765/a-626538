@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MemberProfileCard from './MemberProfileCard';
@@ -10,6 +10,23 @@ interface DashboardViewProps {
 
 const DashboardView = ({ onLogout }: DashboardViewProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const handleLogout = async () => {
+    try {
+      // Invalidate all queries before logout
+      await queryClient.invalidateQueries();
+      await supabase.auth.signOut();
+      onLogout();
+    } catch (error) {
+      console.error('Error during logout:', error);
+      toast({
+        title: "Error",
+        description: "Failed to log out",
+        variant: "destructive",
+      });
+    }
+  };
 
   const { data: memberProfile, isError } = useQuery({
     queryKey: ['memberProfile'],
@@ -70,7 +87,7 @@ const DashboardView = ({ onLogout }: DashboardViewProps) => {
           <p className="text-dashboard-text">Welcome back!</p>
         </div>
         <Button 
-          onClick={onLogout} 
+          onClick={handleLogout} 
           variant="outline" 
           className="border-white/10 hover:bg-white/5 text-dashboard-text"
         >

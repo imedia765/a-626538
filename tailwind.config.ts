@@ -33,6 +33,7 @@ export default {
           text: "#C4C3BB",
           muted: "#828179",
           card: "#1A1A19",
+          warning: "#FFD700", // Added deep bright yellow for warnings
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",

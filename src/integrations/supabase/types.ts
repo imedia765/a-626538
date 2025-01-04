@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      backup_history: {
+        Row: {
+          backup_file_name: string | null
+          collectors_count: number | null
+          error_message: string | null
+          id: string
+          members_count: number | null
+          operation_type: Database["public"]["Enums"]["backup_operation_type"]
+          performed_at: string | null
+          performed_by: string | null
+          policies_count: number | null
+          roles_count: number | null
+          status: string | null
+        }
+        Insert: {
+          backup_file_name?: string | null
+          collectors_count?: number | null
+          error_message?: string | null
+          id?: string
+          members_count?: number | null
+          operation_type: Database["public"]["Enums"]["backup_operation_type"]
+          performed_at?: string | null
+          performed_by?: string | null
+          policies_count?: number | null
+          roles_count?: number | null
+          status?: string | null
+        }
+        Update: {
+          backup_file_name?: string | null
+          collectors_count?: number | null
+          error_message?: string | null
+          id?: string
+          members_count?: number | null
+          operation_type?: Database["public"]["Enums"]["backup_operation_type"]
+          performed_at?: string | null
+          performed_by?: string | null
+          policies_count?: number | null
+          roles_count?: number | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       members: {
         Row: {
           address: string | null
@@ -20,32 +62,23 @@ export type Database = {
           created_at: string
           created_by: string | null
           date_of_birth: string | null
-          default_password_hash: string | null
           email: string | null
-          email_verified: boolean | null
           family_member_dob: string | null
           family_member_gender: string | null
           family_member_name: string | null
           family_member_relationship: string | null
-          first_time_login: boolean | null
           full_name: string
           gender: string | null
           id: string
           marital_status: string | null
           member_number: string
           membership_type: string | null
-          password_changed: boolean | null
           payment_amount: number | null
           payment_date: string | null
           payment_notes: string | null
           payment_type: string | null
           phone: string | null
           postcode: string | null
-          profile_completed: boolean | null
-          profile_updated: boolean | null
-          registration_completed: boolean | null
-          registration_status: string | null
-          role: Database["public"]["Enums"]["user_role"]
           status: string | null
           ticket_description: string | null
           ticket_priority: string | null
@@ -65,32 +98,23 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date_of_birth?: string | null
-          default_password_hash?: string | null
           email?: string | null
-          email_verified?: boolean | null
           family_member_dob?: string | null
           family_member_gender?: string | null
           family_member_name?: string | null
           family_member_relationship?: string | null
-          first_time_login?: boolean | null
           full_name: string
           gender?: string | null
           id?: string
           marital_status?: string | null
           member_number: string
           membership_type?: string | null
-          password_changed?: boolean | null
           payment_amount?: number | null
           payment_date?: string | null
           payment_notes?: string | null
           payment_type?: string | null
           phone?: string | null
           postcode?: string | null
-          profile_completed?: boolean | null
-          profile_updated?: boolean | null
-          registration_completed?: boolean | null
-          registration_status?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
           status?: string | null
           ticket_description?: string | null
           ticket_priority?: string | null
@@ -110,32 +134,23 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date_of_birth?: string | null
-          default_password_hash?: string | null
           email?: string | null
-          email_verified?: boolean | null
           family_member_dob?: string | null
           family_member_gender?: string | null
           family_member_name?: string | null
           family_member_relationship?: string | null
-          first_time_login?: boolean | null
           full_name?: string
           gender?: string | null
           id?: string
           marital_status?: string | null
           member_number?: string
           membership_type?: string | null
-          password_changed?: boolean | null
           payment_amount?: number | null
           payment_date?: string | null
           payment_notes?: string | null
           payment_type?: string | null
           phone?: string | null
           postcode?: string | null
-          profile_completed?: boolean | null
-          profile_updated?: boolean | null
-          registration_completed?: boolean | null
-          registration_status?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
           status?: string | null
           ticket_description?: string | null
           ticket_priority?: string | null
@@ -150,11 +165,10 @@ export type Database = {
       members_collectors: {
         Row: {
           active: boolean | null
-          collector_profile_id: string
           created_at: string
           email: string | null
           id: string
-          member_profile_id: string
+          member_number: string | null
           name: string | null
           number: string | null
           phone: string | null
@@ -163,11 +177,10 @@ export type Database = {
         }
         Insert: {
           active?: boolean | null
-          collector_profile_id: string
           created_at?: string
           email?: string | null
           id?: string
-          member_profile_id: string
+          member_number?: string | null
           name?: string | null
           number?: string | null
           phone?: string | null
@@ -176,129 +189,36 @@ export type Database = {
         }
         Update: {
           active?: boolean | null
-          collector_profile_id?: string
           created_at?: string
           email?: string | null
           id?: string
-          member_profile_id?: string
+          member_number?: string | null
           name?: string | null
           number?: string | null
           phone?: string | null
           prefix?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "members_collectors_collector_profile_id_fkey"
-            columns: ["collector_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "members_collectors_member_profile_id_fkey"
-            columns: ["member_profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      members_roles: {
+      user_roles: {
         Row: {
           created_at: string
           id: string
-          profile_id: string
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
-          profile_id: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
-          profile_id?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "members_roles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          address: string | null
-          auth_user_id: string
-          collector_number: string | null
-          created_at: string
-          date_of_birth: string | null
-          email: string | null
-          full_name: string
-          gender: string | null
-          id: string
-          is_active: boolean | null
-          marital_status: string | null
-          member_number: string
-          membership_type: string | null
-          phone: string | null
-          postcode: string | null
-          prefix: string | null
-          status: string | null
-          town: string | null
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          auth_user_id: string
-          collector_number?: string | null
-          created_at?: string
-          date_of_birth?: string | null
-          email?: string | null
-          full_name: string
-          gender?: string | null
-          id?: string
-          is_active?: boolean | null
-          marital_status?: string | null
-          member_number: string
-          membership_type?: string | null
-          phone?: string | null
-          postcode?: string | null
-          prefix?: string | null
-          status?: string | null
-          town?: string | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          auth_user_id?: string
-          collector_number?: string | null
-          created_at?: string
-          date_of_birth?: string | null
-          email?: string | null
-          full_name?: string
-          gender?: string | null
-          id?: string
-          is_active?: boolean | null
-          marital_status?: string | null
-          member_number?: string
-          membership_type?: string | null
-          phone?: string | null
-          postcode?: string | null
-          prefix?: string | null
-          status?: string | null
-          town?: string | null
-          updated_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -307,92 +227,59 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      authenticate_member:
-        | {
-            Args: {
-              p_member_number: string
-            }
-            Returns: {
-              id: string
-              member_number: string
-              auth_user_id: string
-              full_name: string
-              email: string
-              role: string
-            }[]
-          }
-        | {
-            Args: {
-              p_member_number: string
-              p_password: string
-            }
-            Returns: {
-              id: string
-              member_number: string
-              full_name: string
-              email: string
-              role: Database["public"]["Enums"]["user_role"]
-            }[]
-          }
-      current_user_is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      current_user_is_collector: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
-      get_user_role: {
+      assign_collector_role: {
         Args: {
-          user_auth_id: string
+          member_id: string
+          collector_name: string
+          collector_prefix: string
+          collector_number: string
         }
-        Returns: Database["public"]["Enums"]["user_role"]
+        Returns: string
+      }
+      generate_full_backup: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_rls_policies: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          table_name: string
+          name: string
+          command: string
+        }[]
+      }
+      get_tables_info: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          name: string
+          columns: Json
+          rls_enabled: boolean
+        }[]
       }
       is_admin: {
         Args: {
-          user_id: string
+          user_uid: string
         }
         Returns: boolean
       }
-      link_member_with_auth: {
-        Args: {
-          p_member_number: string
-          p_auth_user_id: string
-        }
+      perform_user_roles_sync: {
+        Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      safely_upsert_profile: {
+      restore_from_backup: {
         Args: {
-          p_auth_user_id: string
-          p_member_number: string
-          p_full_name: string
-          p_email: string
+          backup_data: Json
         }
-        Returns: {
-          address: string | null
-          auth_user_id: string
-          collector_number: string | null
-          created_at: string
-          date_of_birth: string | null
-          email: string | null
-          full_name: string
-          gender: string | null
-          id: string
-          is_active: boolean | null
-          marital_status: string | null
-          member_number: string
-          membership_type: string | null
-          phone: string | null
-          postcode: string | null
-          prefix: string | null
-          status: string | null
-          town: string | null
-          updated_at: string
-        }[]
+        Returns: string
+      }
+      update_collector_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
-      user_role: "member" | "collector" | "admin"
+      app_role: "admin" | "collector" | "member"
+      backup_operation_type: "backup" | "restore"
     }
     CompositeTypes: {
       [_ in never]: never
