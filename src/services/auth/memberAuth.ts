@@ -56,17 +56,17 @@ export const loginOrSignupMember = async (memberNumber: string) => {
 
   try {
     // Try to sign in first
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    const signInResult = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (signInError) {
-      console.log('Sign in failed, attempting signup:', signInError);
+    if (signInResult.error) {
+      console.log('Sign in failed, attempting signup:', signInResult.error);
       
-      if (signInError.message === 'Invalid login credentials') {
+      if (signInResult.error.message === 'Invalid login credentials') {
         // If sign in fails, try to sign up
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        const signUpResult = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -76,23 +76,32 @@ export const loginOrSignupMember = async (memberNumber: string) => {
           }
         });
 
-        if (signUpError) {
-          console.error('Signup error:', signUpError);
-          throw signUpError;
+        if (signUpResult.error) {
+          console.error('Signup error:', signUpResult.error);
+          throw signUpResult.error;
         }
-        if (!signUpData.user) {
+        if (!signUpResult.data.user) {
           console.error('Failed to create user account - no user returned');
           throw new Error('Failed to create user account');
         }
 
-        return signUpData;
+        return {
+          data: signUpResult.data,
+          error: null
+        };
       }
-      throw signInError;
+      throw signInResult.error;
     }
 
-    return signInData;
+    return {
+      data: signInResult.data,
+      error: null
+    };
   } catch (error) {
     console.error('Auth error:', error);
-    throw error;
+    return {
+      data: null,
+      error
+    };
   }
 };
