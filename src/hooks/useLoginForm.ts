@@ -19,7 +19,7 @@ export const useLoginForm = () => {
     setError(null);
 
     try {
-      // First clear any existing session
+      // First ensure we're starting fresh by clearing any existing session
       await supabase.auth.signOut();
       
       const maxRetries = 3;
@@ -31,8 +31,15 @@ export const useLoginForm = () => {
           // First verify member exists
           const member = await findMemberByNumber(formattedMemberNumber);
           
-          // Then attempt login/signup
-          const authData = await loginOrSignupMember(formattedMemberNumber);
+          if (!member) {
+            throw new Error('Member not found. Please check your member number.');
+          }
+
+          // Attempt login/signup
+          const { data: authData, error: authError } = await loginOrSignupMember(formattedMemberNumber);
+          
+          if (authError) throw authError;
+          if (!authData.user) throw new Error('Failed to authenticate user');
 
           // If we have a user and they're new, update their member record
           if (authData.user && member && !member.auth_user_id) {
@@ -48,11 +55,11 @@ export const useLoginForm = () => {
           }
 
           // Verify session is established
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            throw new Error('Failed to establish session');
-          }
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          if (sessionError) throw sessionError;
+          if (!session) throw new Error('Failed to establish session');
 
+          // Success! Invalidate queries and redirect
           await queryClient.invalidateQueries();
           
           toast({
@@ -68,15 +75,18 @@ export const useLoginForm = () => {
           currentTry++;
           
           if (currentTry === maxRetries) {
+            // Final failure - clean up and show error
             await supabase.auth.signOut();
-            setError(error.message || "Please try again later. If the problem persists, contact support.");
+            const errorMessage = error.message || "Please try again later. If the problem persists, contact support.";
+            setError(errorMessage);
             
             toast({
               title: "Login failed",
-              description: error.message || "Please try again later. If the problem persists, contact support.",
+              description: errorMessage,
               variant: "destructive",
             });
           } else {
+            // Wait before retrying, with exponential backoff
             await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentTry) * 1000));
             console.log(`Retrying login... Attempt ${currentTry + 1} of ${maxRetries}`);
           }

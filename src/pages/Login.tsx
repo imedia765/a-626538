@@ -13,19 +13,21 @@ const Login = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check for existing session on mount
     const checkSession = async () => {
       try {
+        // First clear any existing invalid session
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) console.error('Error clearing session:', signOutError);
+
+        // Then check for a valid session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Session check error:', error);
-          // Clear any invalid session data
-          await supabase.auth.signOut();
           return;
         }
 
-        if (session) {
+        if (session?.user) {
           console.log('Active session found, redirecting to dashboard');
           navigate('/');
         }
@@ -45,7 +47,7 @@ const Login = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
-      if (event === 'SIGNED_IN' && session) {
+      if (event === 'SIGNED_IN' && session?.user) {
         navigate('/');
       } else if (event === 'SIGNED_OUT') {
         navigate('/login');
