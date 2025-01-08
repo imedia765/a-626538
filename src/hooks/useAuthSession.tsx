@@ -85,8 +85,8 @@ export const useAuthSession = () => {
         console.log('Auth state changed:', event, currentSession?.user?.id);
         setLoading(true);
         
-        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          console.log('User signed out or deleted, clearing session and queries');
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing session and queries');
           await handleSignOut();
           return;
         }
