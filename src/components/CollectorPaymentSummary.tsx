@@ -68,12 +68,11 @@ const CollectorPaymentSummary = ({ collectorName }: PaymentSummaryProps) => {
   const remainingMembers = paymentStats.totalMembers - paymentStats.yearlyPayments.completed;
 
   return (
-    <Card className="bg-dashboard-card p-6 mt-8 border border-white/10">
+    <Card className="glass-card p-6 mt-8">
       <h3 className="text-xl font-medium text-white mb-6">Payment Collection Summary</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Yearly Payments */}
-        <div className="p-4 bg-dashboard-accent1/5 rounded-lg border border-dashboard-accent1/10">
+        <div className="glass-card p-4">
           <div className="flex items-center gap-2 mb-4">
             <CreditCard className="w-5 h-5 text-dashboard-accent1" />
             <h4 className="text-dashboard-accent1 font-medium">Yearly Payments</h4>
@@ -104,8 +103,7 @@ const CollectorPaymentSummary = ({ collectorName }: PaymentSummaryProps) => {
           </div>
         </div>
 
-        {/* Emergency Collections */}
-        <div className="p-4 bg-dashboard-accent2/5 rounded-lg border border-dashboard-accent2/10">
+        <div className="glass-card p-4">
           <div className="flex items-center gap-2 mb-4">
             <Receipt className="w-5 h-5 text-dashboard-accent2" />
             <h4 className="text-dashboard-accent2 font-medium">Emergency Collections</h4>
