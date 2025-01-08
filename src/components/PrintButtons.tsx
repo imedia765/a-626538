@@ -34,9 +34,9 @@ const PrintButtons = ({
     let page = 0;
 
     while (hasMore) {
-      const { data: collectorMembers, error, count } = await supabase
+      const { data: collectorMembers, error } = await supabase
         .from('members')
-        .select('*', { count: 'exact' })
+        .select('*')
         .eq('collector', name)
         .order('member_number', { ascending: true })
         .range(page * BATCH_SIZE, (page + 1) * BATCH_SIZE - 1);

@@ -10,12 +10,15 @@ import {
 } from "@/components/ui/accordion";
 import CollectorMembers from "@/components/CollectorMembers";
 import PrintButtons from "@/components/PrintButtons";
+import { usePagination } from '@/hooks/usePagination';
+import PaginationControls from './ui/pagination/PaginationControls';
 
 type MemberCollector = Database['public']['Tables']['members_collectors']['Row'];
 type Member = Database['public']['Tables']['members']['Row'];
 
+const ITEMS_PER_PAGE = 10;
+
 const CollectorsList = () => {
-  // Fetch all members for the master print functionality
   const { data: allMembers } = useQuery({
     queryKey: ['all_members'],
     queryFn: async () => {
@@ -56,7 +59,6 @@ const CollectorsList = () => {
 
       if (!collectorsData) return [];
 
-      // Get member count for each collector
       const collectorsWithCounts = await Promise.all(collectorsData.map(async (collector) => {
         const { count } = await supabase
           .from('members')
@@ -73,6 +75,19 @@ const CollectorsList = () => {
     },
   });
 
+  const {
+    currentPage,
+    totalPages,
+    from,
+    to,
+    setCurrentPage,
+  } = usePagination({
+    totalItems: collectors?.length || 0,
+    itemsPerPage: ITEMS_PER_PAGE,
+  });
+
+  const paginatedCollectors = collectors?.slice(from, to + 1) || [];
+
   if (collectorsLoading) return <div className="text-center py-4">Loading collectors...</div>;
   if (collectorsError) return <div className="text-center py-4 text-red-500">Error loading collectors: {collectorsError.message}</div>;
   if (!collectors?.length) return <div className="text-center py-4">No collectors found</div>;
@@ -84,7 +99,7 @@ const CollectorsList = () => {
       </div>
 
       <Accordion type="single" collapsible className="space-y-4">
-        {collectors.map((collector) => (          
+        {paginatedCollectors.map((collector) => (          
           <AccordionItem
             key={collector.id}
             value={collector.id}
@@ -132,6 +147,16 @@ const CollectorsList = () => {
           </AccordionItem>
         ))}
       </Accordion>
+
+      {collectors.length > ITEMS_PER_PAGE && (
+        <div className="py-4">
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </div>
+      )}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import { Accordion } from "@/components/ui/accordion";
 import MemberCard from './MemberCard';
 import PaginationControls from '../ui/pagination/PaginationControls';
 import { usePagination } from '@/hooks/usePagination';
+import { Loader2 } from "lucide-react";
 
 interface MembersListContentProps {
   members: Member[];
@@ -40,7 +41,7 @@ const MembersListContent = ({
       <ScrollArea className="h-[600px] w-full rounded-md">
         {isLoading ? (
           <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dashboard-accent1"></div>
+            <Loader2 className="h-8 w-8 animate-spin text-dashboard-accent1" />
           </div>
         ) : (
           <Accordion type="single" collapsible className="space-y-4">
