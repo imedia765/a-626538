@@ -103,6 +103,14 @@ const MembersList = ({ searchTerm, userRole }: MembersListProps) => {
     setIsEditProfileDialogOpen(true);
   };
 
+  const handlePrint = () => {
+    if (collectorInfo) {
+      console.log('Printing members for collector:', collectorInfo.name);
+      // The actual print functionality is handled by the PrintButtons component
+      // which is rendered inside MembersListHeader
+    }
+  };
+
   return (
     <div className="space-y-6">
       <MembersListHeader 
@@ -111,6 +119,7 @@ const MembersList = ({ searchTerm, userRole }: MembersListProps) => {
         collectorInfo={collectorInfo}
         selectedMember={selectedMember}
         onProfileUpdated={handleProfileUpdated}
+        onPrint={handlePrint}
       />
 
       <MembersListContent
