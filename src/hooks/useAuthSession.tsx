@@ -1,72 +1,57 @@
 import { useState, useEffect } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from '@tanstack/react-query';
 
 export const useAuthSession = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const queryClient = useQueryClient();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleSignOut = async () => {
-    setLoading(true);
     try {
-      await Promise.allSettled([
+      setLoading(true);
+      await Promise.all([
         queryClient.resetQueries(),
+        queryClient.clear(),
         localStorage.clear(),
         supabase.auth.signOut()
       ]);
-    } catch (error) {
-      console.error('Error during sign out:', error);
-    } finally {
       setSession(null);
-      setLoading(false);
-    }
-  };
-
-  const handleAuthError = async (error: any) => {
-    console.error('Auth error:', error);
-    
-    const errorMessage = typeof error === 'string' ? error : error.message || error.error_description;
-    const errorCode = error?.body ? JSON.parse(error.body)?.code : null;
-    
-    if (errorCode === 'session_not_found' || 
-        errorMessage?.includes('JWT expired') ||
-        errorMessage?.includes('Invalid Refresh Token') ||
-        error?.status === 403) {
-      console.log('Session invalid or expired, signing out...');
-      await handleSignOut();
-      
+    } catch (error: any) {
+      console.error('Error during sign out:', error);
       toast({
-        title: "Session expired",
-        description: "Please sign in again",
+        title: "Error signing out",
+        description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     let mounted = true;
-    let authSubscription: { unsubscribe: () => void } | null = null;
 
     const initializeSession = async () => {
       try {
         setLoading(true);
-        console.log('Checking for existing session...');
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
-        const { data: { session: existingSession }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
+        if (error) throw error;
         
-        if (mounted && existingSession?.user) {
-          console.log('Found existing session for user:', existingSession.user.id);
-          setSession(existingSession);
+        if (mounted) {
+          setSession(currentSession);
+          if (currentSession?.user) {
+            console.log('Session initialized for user:', currentSession.user.id);
+          }
         }
       } catch (error: any) {
-        console.error('Session check error:', error);
+        console.error('Session initialization error:', error);
         if (mounted) {
-          await handleAuthError(error);
+          await handleSignOut();
         }
       } finally {
         if (mounted) {
@@ -75,60 +60,31 @@ export const useAuthSession = () => {
       }
     };
 
-    const setupAuthSubscription = () => {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-        if (!mounted) {
-          console.log('Component unmounted, ignoring auth state change');
-          return;
-        }
-        
-        console.log('Auth state changed:', event, currentSession?.user?.id);
-        setLoading(true);
-        
-        if (event === 'SIGNED_OUT') {
-          console.log('User signed out, clearing session and queries');
-          await handleSignOut();
-          return;
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (!mounted) return;
 
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log('Setting session after', event);
-          try {
-            const { error: userError } = await supabase.auth.getUser();
-            if (userError) throw userError;
-            
-            setSession(currentSession);
-            if (event === 'SIGNED_IN') {
-              queryClient.resetQueries();
-            }
-          } catch (error) {
-            console.error('Error verifying user after auth state change:', error);
-            await handleAuthError(error);
-          }
-        } else {
-          setSession(currentSession);
-        }
-        
-        setLoading(false);
-      });
+      console.log('Auth state changed:', event, currentSession?.user?.id);
+      
+      if (event === 'SIGNED_OUT') {
+        await handleSignOut();
+        return;
+      }
 
-      authSubscription = subscription;
-    };
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setSession(currentSession);
+        await queryClient.invalidateQueries();
+      }
+      
+      setLoading(false);
+    });
 
     initializeSession();
-    setupAuthSubscription();
 
     return () => {
       mounted = false;
-      if (authSubscription) {
-        try {
-          authSubscription.unsubscribe();
-        } catch (error) {
-          console.error('Error unsubscribing from auth changes:', error);
-        }
-      }
+      subscription.unsubscribe();
     };
   }, [queryClient, toast]);
 
-  return { session, loading };
+  return { session, loading, handleSignOut };
 };
