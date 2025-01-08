@@ -1,30 +1,24 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Accordion } from "@/components/ui/accordion";
 import { useState } from "react";
 import CollectorPaymentSummary from './CollectorPaymentSummary';
-import MemberCard from './members/MemberCard';
 import PaymentDialog from './members/PaymentDialog';
 import EditProfileDialog from './members/EditProfileDialog';
 import { Member } from "@/types/member";
 import { useToast } from "@/components/ui/use-toast";
-import { generateMembersPDF } from "@/utils/pdfGenerator";
 import MembersListHeader from './members/MembersListHeader';
+import MembersListContent from './members/MembersListContent';
 
 interface MembersListProps {
   searchTerm: string;
   userRole: string | null;
 }
 
-const ITEMS_PER_PAGE = 7;
-
 const MembersList = ({ searchTerm, userRole }: MembersListProps) => {
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isEditProfileDialogOpen, setIsEditProfileDialogOpen] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: collectorInfo } = useQuery({
     queryKey: ['collector-info'],
@@ -93,33 +87,6 @@ const MembersList = ({ searchTerm, userRole }: MembersListProps) => {
   const members = membersData?.members || [];
   const selectedMember = members?.find(m => m.id === selectedMemberId);
 
-  const handlePrintMembers = () => {
-    if (!members?.length || !collectorInfo?.name) {
-      toast({
-        title: "Error",
-        description: "No members available to print",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const doc = generateMembersPDF(members, `Members List - Collector: ${collectorInfo.name}`);
-      doc.save();
-      toast({
-        title: "Success",
-        description: "PDF report generated successfully",
-      });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate PDF report",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleProfileUpdated = () => {
     refetch();
     setSelectedMemberId(null);
@@ -140,32 +107,19 @@ const MembersList = ({ searchTerm, userRole }: MembersListProps) => {
     <div className="space-y-6">
       <MembersListHeader 
         userRole={userRole}
-        onPrint={handlePrintMembers}
         hasMembers={members.length > 0}
         collectorInfo={collectorInfo}
         selectedMember={selectedMember}
         onProfileUpdated={handleProfileUpdated}
       />
 
-      <ScrollArea className="h-[600px] w-full rounded-md">
-        {isLoading ? (
-          <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-dashboard-accent1"></div>
-          </div>
-        ) : (
-          <Accordion type="single" collapsible className="space-y-4">
-            {members?.map((member) => (
-              <MemberCard
-                key={member.id}
-                member={member}
-                userRole={userRole}
-                onPaymentClick={() => handlePaymentClick(member.id)}
-                onEditClick={() => handleEditClick(member.id)}
-              />
-            ))}
-          </Accordion>
-        )}
-      </ScrollArea>
+      <MembersListContent
+        members={members}
+        isLoading={isLoading}
+        userRole={userRole}
+        onPaymentClick={handlePaymentClick}
+        onEditClick={handleEditClick}
+      />
 
       {selectedMember && isPaymentDialogOpen && (
         <PaymentDialog
