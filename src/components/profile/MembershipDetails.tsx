@@ -1,134 +1,152 @@
 import { Member } from "@/types/member";
-import { Shield } from "lucide-react";
+import RoleBadge from "./RoleBadge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Shield } from "lucide-react";
 import { useQuery } from '@tanstack/react-query';
-import StatusBadge from "./membership/StatusBadge";
-import MembershipType from "./membership/MembershipType";
 
 interface MembershipDetailsProps {
   memberProfile: Member;
   userRole: string | null;
 }
 
+type AppRole = 'admin' | 'collector' | 'member';
+
 const MembershipDetails = ({ memberProfile, userRole }: MembershipDetailsProps) => {
-  // First check if user is a collector
-  const { data: collectorStatus } = useQuery({
-    queryKey: ['collectorStatus', memberProfile.id],
+  const { toast } = useToast();
+
+  const { data: userRoles, refetch: refetchRoles } = useQuery({
+    queryKey: ['userRoles', memberProfile.auth_user_id],
     queryFn: async () => {
-      console.log('Checking collector status for member:', memberProfile.id);
+      if (!memberProfile.auth_user_id) return [];
+      
       const { data, error } = await supabase
-        .from('members_collectors')
-        .select('name')
-        .eq('id', memberProfile.collector_id)
-        .maybeSingle();
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', memberProfile.auth_user_id);
 
       if (error) {
-        console.error('Error checking collector status:', error);
-        return null;
+        console.error('Error fetching roles:', error);
+        return [];
       }
 
-      console.log('Collector status result:', data);
-      return data ? 'collector' : null;
+      return data.map(r => r.role) as AppRole[];
     },
-    enabled: !!memberProfile.id
+    enabled: !!memberProfile.auth_user_id
   });
 
-  // Then check user_roles table, prioritizing admin role
-  const { data: roleFromTable } = useQuery({
-    queryKey: ['userRole', memberProfile.auth_user_id],
-    queryFn: async () => {
-      if (!memberProfile.auth_user_id) return null;
-      
-      console.log('Checking user_roles for:', memberProfile.auth_user_id);
-      
-      // First check for admin role
-      const { data: adminRole, error: adminError } = await supabase
+  const getHighestRole = (roles: AppRole[]): AppRole | null => {
+    if (roles.includes('admin')) return 'admin';
+    if (roles.includes('collector')) return 'collector';
+    if (roles.includes('member')) return 'member';
+    return null;
+  };
+
+  const displayRole = userRoles?.length ? getHighestRole(userRoles) : userRole;
+
+  const handleRoleChange = async (newRole: AppRole) => {
+    if (!memberProfile.auth_user_id) {
+      toast({
+        title: "Error",
+        description: "User not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Delete existing roles
+      const { error: deleteError } = await supabase
         .from('user_roles')
-        .select('role')
-        .eq('user_id', memberProfile.auth_user_id)
-        .eq('role', 'admin')
-        .maybeSingle();
+        .delete()
+        .eq('user_id', memberProfile.auth_user_id);
 
-      if (adminError) {
-        console.error('Error checking admin role:', adminError);
-        return null;
-      }
+      if (deleteError) throw deleteError;
 
-      if (adminRole) {
-        console.log('User is an admin');
-        return 'admin';
-      }
-
-      // If not admin, check for collector role
-      const { data: collectorRole, error: collectorError } = await supabase
+      // Insert new role
+      const { error: insertError } = await supabase
         .from('user_roles')
-        .select('role')
-        .eq('user_id', memberProfile.auth_user_id)
-        .eq('role', 'collector')
-        .maybeSingle();
+        .insert({
+          user_id: memberProfile.auth_user_id,
+          role: newRole
+        });
 
-      if (collectorError) {
-        console.error('Error checking collector role:', collectorError);
-        return null;
-      }
+      if (insertError) throw insertError;
 
-      if (collectorRole) {
-        console.log('User is a collector');
-        return 'collector';
-      }
+      await refetchRoles();
 
-      // Finally check for member role
-      const { data: memberRole, error: memberError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', memberProfile.auth_user_id)
-        .eq('role', 'member')
-        .maybeSingle();
-
-      if (memberError) {
-        console.error('Error checking member role:', memberError);
-        return null;
-      }
-
-      if (memberRole) {
-        console.log('User is a member');
-        return 'member';
-      }
-
-      return null;
-    },
-    enabled: !!memberProfile.auth_user_id,
-    retry: false
-  });
-
-  // Determine final role
-  const displayRole = roleFromTable || collectorStatus || 'member';
-  console.log('Final determined role:', displayRole);
-  
-  const isAdmin = displayRole === 'admin';
+      toast({
+        title: "Success",
+        description: `Role updated to ${newRole}`,
+      });
+    } catch (error) {
+      console.error('Error updating role:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update role",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="space-y-2">
       <p className="text-dashboard-muted text-sm">Membership Details</p>
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="text-dashboard-text flex items-center gap-2">
-            Status:{' '}
-            <StatusBadge status={memberProfile?.status} />
-          </div>
-          {isAdmin && (
-            <span className="bg-dashboard-accent1/20 text-dashboard-accent1 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-              <Shield className="w-3 h-3" />
-              Admin
-            </span>
-          )}
+        <div className="text-dashboard-text flex items-center gap-2">
+          Status:{' '}
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+            memberProfile?.status === 'active' 
+              ? 'bg-dashboard-accent3/20 text-dashboard-accent3' 
+              : 'bg-dashboard-muted/20 text-dashboard-muted'
+          }`}>
+            {memberProfile?.status || 'Pending'}
+          </span>
         </div>
-        <MembershipType 
-          membershipType={memberProfile?.membership_type}
-          displayRole={displayRole}
-          isAdmin={isAdmin}
-          authUserId={memberProfile.auth_user_id}
-        />
+        {memberProfile?.collector && (
+          <div className="text-dashboard-text flex items-center gap-2">
+            <span className="text-dashboard-muted">Collector:</span>
+            <span className="text-dashboard-accent1">{memberProfile.collector}</span>
+          </div>
+        )}
+        <div className="text-dashboard-text flex items-center gap-2">
+          <span className="text-dashboard-accent2">Type:</span>
+          <span className="flex items-center gap-2">
+            {memberProfile?.membership_type || 'Standard'}
+            {displayRole === 'admin' ? (
+              <div className="ml-2">
+                <Select onValueChange={handleRoleChange}>
+                  <SelectTrigger className="w-[140px] h-8 bg-dashboard-accent1/10 border-dashboard-accent1/20">
+                    <SelectValue placeholder="Change Role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        Admin
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="collector">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        Collector
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="member">
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        Member
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <RoleBadge role={displayRole} />
+            )}
+          </span>
+        </div>
       </div>
     </div>
   );

@@ -1,36 +1,38 @@
-import { useState } from 'react';
-import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from '@tanstack/react-query';
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, UserCheck } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Database } from '@/integrations/supabase/types';
+import { UserCheck, Users, CreditCard, Link2, AlertCircle } from 'lucide-react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import CollectorMembers from "@/components/CollectorMembers";
+import PrintButtons from "@/components/PrintButtons";
 
-interface Collector {
-  id: string;
-  name: string | null;
-  prefix: string | null;
-  number: string | null;
-  email: string | null;
-  phone: string | null;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-  member_number: string | null;
-  memberCount?: number;
-}
+type MemberCollector = Database['public']['Tables']['members_collectors']['Row'];
+type Member = Database['public']['Tables']['members']['Row'];
 
 const CollectorsList = () => {
-  const { toast } = useToast();
-  const [error, setError] = useState<string | null>(null);
-
-  const { data: collectors, isLoading } = useQuery({
-    queryKey: ['collectors'],
+  // Fetch all members for the master print functionality
+  const { data: allMembers } = useQuery({
+    queryKey: ['all_members'],
     queryFn: async () => {
-      console.log('Fetching collectors...');
+      const { data, error } = await supabase
+        .from('members')
+        .select('*')
+        .order('member_number', { ascending: true });
       
-      // First get all collectors
+      if (error) throw error;
+      return data as Member[];
+    },
+  });
+
+  const { data: collectors, isLoading: collectorsLoading, error: collectorsError } = useQuery({
+    queryKey: ['members_collectors'],
+    queryFn: async () => {
+      console.log('Fetching collectors from members_collectors...');
       const { data: collectorsData, error: collectorsError } = await supabase
         .from('members_collectors')
         .select(`
@@ -49,85 +51,87 @@ const CollectorsList = () => {
       
       if (collectorsError) {
         console.error('Error fetching collectors:', collectorsError);
-        setError(collectorsError.message);
-        return [];
+        throw collectorsError;
       }
 
-      // Then enhance with member counts
-      return await Promise.all(collectorsData.map(async (collector) => {
-        const { count, error: countError } = await supabase
+      if (!collectorsData) return [];
+
+      // Get member count for each collector
+      const collectorsWithCounts = await Promise.all(collectorsData.map(async (collector) => {
+        const { count } = await supabase
           .from('members')
           .select('*', { count: 'exact', head: true })
           .eq('collector', collector.name);
-        
-        if (countError) {
-          console.error('Error fetching member count:', countError);
-          toast({
-            title: "Error",
-            description: "Failed to fetch member count",
-            variant: "destructive",
-          });
-        }
-        
+
         return {
           ...collector,
-          memberCount: count || 0,
-          memberNumber: collector.member_number
+          memberCount: count || 0
         };
-      }) || []);
-    }
+      }));
+
+      return collectorsWithCounts;
+    },
   });
 
-  if (error) {
-    return (
-      <div className="p-4 text-red-500">
-        Error loading collectors: {error}
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full" />
-        ))}
-      </div>
-    );
-  }
+  if (collectorsLoading) return <div className="text-center py-4">Loading collectors...</div>;
+  if (collectorsError) return <div className="text-center py-4 text-red-500">Error loading collectors: {collectorsError.message}</div>;
+  if (!collectors?.length) return <div className="text-center py-4">No collectors found</div>;
 
   return (
     <div className="space-y-4">
-      {collectors?.map((collector) => (
-        <Card key={collector.id} className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-dashboard-text">
-                {collector.name}
-              </h3>
-              <p className="text-sm text-dashboard-muted">
-                Member Number: {collector.memberNumber || 'Not assigned'}
-              </p>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="outline" className="bg-dashboard-accent2/20 text-dashboard-accent2 border-0">
-                  <UserCheck className="w-3 h-3 mr-1" />
-                  {collector.memberCount} Members
-                </Badge>
-                {collector.active ? (
-                  <Badge variant="outline" className="bg-dashboard-accent3/20 text-dashboard-accent3 border-0">
-                    Active
-                  </Badge>
+      <div className="flex justify-end mb-4">
+        <PrintButtons allMembers={allMembers} />
+      </div>
+
+      <Accordion type="single" collapsible className="space-y-4">
+        {collectors.map((collector) => (          
+          <AccordionItem
+            key={collector.id}
+            value={collector.id}
+            className="bg-dashboard-card border border-white/10 rounded-lg overflow-hidden"
+          >
+            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-dashboard-accent1 flex items-center justify-center text-white font-medium">
+                    {collector.prefix}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-white">{collector.name}</p>
+                      <span className="text-sm text-gray-400">#{collector.number}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-dashboard-text">
+                      <UserCheck className="w-4 h-4" />
+                      <span>Collector</span>
+                      <span className="text-purple-400">({collector.memberCount} members)</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <PrintButtons collectorName={collector.name || ''} />
+                  <div className={`px-3 py-1 rounded-full ${
+                    collector.active 
+                      ? 'bg-green-500/20 text-green-400' 
+                      : 'bg-gray-500/20 text-gray-400'
+                  }`}>
+                    {collector.active ? 'Active' : 'Inactive'}
+                  </div>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-3 mt-2">
+                {collector.memberCount > 0 ? (
+                  <CollectorMembers collectorName={collector.name || ''} />
                 ) : (
-                  <Badge variant="outline" className="bg-dashboard-muted/20 text-dashboard-muted border-0">
-                    Inactive
-                  </Badge>
+                  <p className="text-sm text-gray-400">No members assigned to this collector</p>
                 )}
               </div>
-            </div>
-            <Users className="w-8 h-8 text-dashboard-muted" />
-          </div>
-        </Card>
-      ))}
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
     </div>
   );
 };

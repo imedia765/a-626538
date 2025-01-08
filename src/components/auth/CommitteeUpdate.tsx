@@ -1,21 +1,17 @@
-import MembershipInformation from "./MembershipInformation";
-import CollectorResponsibilities from "./CollectorResponsibilities";
-
 const CommitteeUpdate = () => {
   return (
     <div className="bg-dashboard-card rounded-lg shadow-lg p-8 mb-12">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">Committee Update</h2>
-        <div className="flex items-center gap-4">
-          <MembershipInformation />
-          <CollectorResponsibilities />
-        </div>
-      </div>
-      <div className="text-dashboard-text space-y-4">
-        <p>The committee has been working hard to improve our services and make sure we're meeting the needs of our community.</p>
-        <p>We've made some important updates to our policies and procedures, and we encourage all members to stay informed about these changes.</p>
-        <p>If you have any questions or concerns, please don't hesitate to reach out to your collector or the committee directly.</p>
-      </div>
+      <h2 className="text-2xl font-bold text-white mb-6">What we've been doing</h2>
+      <p className="text-dashboard-text mb-6">
+        Brother Sajid has resigned and a new Committee was formally created. We would like to thank brother Sajid for his previous efforts, and he will continue helping the Committee where possible in an informal capacity.
+      </p>
+
+      <h3 className="text-xl font-bold text-white mb-4">New Committee as of December 2023</h3>
+      <ul className="list-disc list-inside text-dashboard-text space-y-2 mb-6">
+        <li>Chairperson: Anjum Riaz & Habib Mushtaq</li>
+        <li>Secretary: Tariq Majid</li>
+        <li>Treasurer: Faizan Qadiri</li>
+      </ul>
     </div>
   );
 };

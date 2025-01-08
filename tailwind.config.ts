@@ -33,7 +33,15 @@ export default {
           text: "#C4C3BB",
           muted: "#828179",
           card: "#1A1A19",
-          warning: "#FFD700", // Added deep bright yellow for warnings
+          warning: "#FFD700",
+          // Adding new color variations
+          cardHover: "#222221",
+          cardBorder: "#2A2A29",
+          cardBorderHover: "#3A3A39",
+          highlight: "#9B87F5",
+          success: "#4CAF50",
+          error: "#FF5252",
+          info: "#2196F3"
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",

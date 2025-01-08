@@ -1,132 +1,117 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import MemberProfileCard from './MemberProfileCard';
-import { Button } from "@/components/ui/button";
+import MonthlyChart from './MonthlyChart';
+import PaymentCard from './PaymentCard';
+import PaymentHistoryTable from './PaymentHistoryTable';
+import { Users, Wallet, AlertCircle } from 'lucide-react';
 
-interface DashboardViewProps {
-  onLogout: () => void;
-}
-
-const DashboardView = ({ onLogout }: DashboardViewProps) => {
+const DashboardView = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
-  const handleLogout = async () => {
-    try {
-      await queryClient.invalidateQueries();
-      await supabase.auth.signOut();
-      onLogout();
-    } catch (error) {
-      console.error('Error during logout:', error);
-      toast({
-        title: "Error",
-        description: "Failed to log out",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const { data: memberProfile, isError, error, isLoading } = useQuery({
+  const { data: memberProfile, isError } = useQuery({
     queryKey: ['memberProfile'],
     queryFn: async () => {
-      try {
-        console.log('Starting member profile fetch...');
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session?.user) {
-          console.error('No active session found');
-          throw new Error('No active session');
-        }
+      console.log('Fetching member profile...');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) throw new Error('No user logged in');
 
-        console.log('Session found:', {
-          userId: session.user.id,
-          metadata: session.user.user_metadata
+      const { data: { user } } = await supabase.auth.getUser();
+      const memberNumber = user?.user_metadata?.member_number;
+      
+      if (!memberNumber) {
+        console.error('No member number found in user metadata');
+        throw new Error('Member number not found');
+      }
+
+      console.log('Fetching member with number:', memberNumber);
+      
+      let query = supabase
+        .from('members')
+        .select('*');
+      
+      query = query.or(`member_number.eq.${memberNumber},auth_user_id.eq.${session.user.id}`);
+      
+      const { data, error } = await query.maybeSingle();
+
+      if (error) {
+        console.error('Error fetching member:', error);
+        toast({
+          variant: "destructive",
+          title: "Error fetching member profile",
+          description: error.message
         });
-
-        // First get the member number from the user metadata
-        const memberNumber = session.user.user_metadata?.member_number;
-        console.log('Member number from metadata:', memberNumber);
-        
-        if (!memberNumber) {
-          console.error('No member number in metadata');
-          throw new Error('Member number not found');
-        }
-
-        // Query the members table
-        console.log('Querying members table with:', {
-          memberNumber: memberNumber,
-          userId: session.user.id
-        });
-        
-        const { data, error } = await supabase
-          .from('members')
-          .select('*')
-          .or(`member_number.eq.${memberNumber},auth_user_id.eq.${session.user.id}`)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Database error:', error);
-          throw error;
-        }
-
-        console.log('Query result:', data);
-
-        if (!data) {
-          console.error('No member found with number:', memberNumber);
-          throw new Error('Member not found');
-        }
-        
-        return data;
-      } catch (error) {
-        console.error('Error in member profile query:', error);
         throw error;
       }
+
+      if (!data) {
+        console.error('No member found with number:', memberNumber);
+        toast({
+          variant: "destructive",
+          title: "Member not found",
+          description: "Could not find your member profile"
+        });
+        throw new Error('Member not found');
+      }
+      
+      return data;
     },
-    retry: 1,
   });
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  // Query to fetch collection totals
+  const { data: collectionTotals } = useQuery({
+    queryKey: ['collectionTotals'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('members')
+        .select('yearly_payment_status, emergency_collection_status, emergency_collection_amount');
 
-  if (isError) {
-    console.error('Error in member profile query:', error);
-    if (error instanceof Error && error.message === 'No active session') {
-      toast({
-        title: "Session Expired",
-        description: "Please log in again",
-        variant: "destructive",
-      });
-      onLogout();
-      return null;
+      if (error) throw error;
+
+      const totalMembers = data.length;
+      const yearlyPending = data.filter(m => m.yearly_payment_status === 'pending').length;
+      const emergencyPending = data.filter(m => m.emergency_collection_status === 'pending').length;
+      const totalEmergencyAmount = data.reduce((sum, member) => sum + (member.emergency_collection_amount || 0), 0);
+      const collectedEmergencyAmount = data
+        .filter(m => m.emergency_collection_status === 'completed')
+        .reduce((sum, member) => sum + (member.emergency_collection_amount || 0), 0);
+
+      return {
+        yearlyPending,
+        emergencyPending,
+        totalEmergencyAmount,
+        collectedEmergencyAmount,
+        totalYearlyAmount: totalMembers * 40, // £40 per member
+        collectedYearlyAmount: (totalMembers - yearlyPending) * 40
+      };
     }
-    
-    return (
-      <div className="text-red-500">
-        Error loading profile. Please try refreshing the page.
-      </div>
-    );
-  }
+  });
+
+  const arePaymentsCompleted = memberProfile?.yearly_payment_status === 'completed' && 
+    memberProfile?.emergency_collection_status === 'completed';
 
   return (
     <>
-      <header className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-medium mb-2 text-white">Dashboard</h1>
-          <p className="text-dashboard-text">Welcome back!</p>
-        </div>
-        <Button 
-          onClick={handleLogout} 
-          variant="outline" 
-          className="border-white/10 hover:bg-white/5 text-dashboard-text"
-        >
-          Logout
-        </Button>
+      <header className="mb-8">
+        <h1 className="text-3xl font-medium mb-2 text-white">Dashboard</h1>
+        <p className="text-dashboard-text">Welcome back!</p>
       </header>
       
       <div className="grid gap-6">
-        {memberProfile && <MemberProfileCard memberProfile={memberProfile} />}
+        <MemberProfileCard memberProfile={memberProfile} />
+        
+        <PaymentCard 
+          annualPaymentStatus={(memberProfile?.yearly_payment_status || 'pending') as 'completed' | 'pending'}
+          emergencyCollectionStatus={(memberProfile?.emergency_collection_status || 'pending') as 'completed' | 'pending'}
+          emergencyCollectionAmount={memberProfile?.emergency_collection_amount}
+          annualPaymentDueDate={memberProfile?.yearly_payment_due_date}
+          emergencyCollectionDueDate={memberProfile?.emergency_collection_due_date}
+        />
+
+        <MonthlyChart />
+
+        <PaymentHistoryTable />
       </div>
     </>
   );

@@ -4,11 +4,12 @@ import 'react-circular-progressbar/dist/styles.css';
 
 interface MetricCardProps {
   title: string;
+  subtitle?: string;
   value: number;
   color: string;
 }
 
-const MetricCard = ({ title, value, color }: MetricCardProps) => {
+const MetricCard = ({ title, subtitle, value, color }: MetricCardProps) => {
   return (
     <div className="metric-card">
       <div className="relative w-32 h-32 mb-6">
@@ -24,6 +25,7 @@ const MetricCard = ({ title, value, color }: MetricCardProps) => {
         />
       </div>
       <h3 className="text-lg font-medium text-dashboard-text">{title}</h3>
+      {subtitle && <p className="text-sm text-dashboard-muted mt-1">{subtitle}</p>}
     </div>
   );
 };

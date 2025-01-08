@@ -5,7 +5,6 @@ import ProfileAvatar from "./profile/ProfileAvatar";
 import ContactInfo from "./profile/ContactInfo";
 import AddressDetails from "./profile/AddressDetails";
 import MembershipDetails from "./profile/MembershipDetails";
-import FinancialDetails from "./profile/membership/FinancialDetails";
 import { useRoleAccess } from "@/hooks/useRoleAccess";
 
 interface MemberProfileCardProps {
@@ -47,7 +46,6 @@ const MemberProfileCard = ({ memberProfile }: MemberProfileCardProps) => {
                   memberProfile={memberProfile}
                   userRole={userRole}
                 />
-                <FinancialDetails memberProfile={memberProfile} />
               </div>
             </div>
           </div>

@@ -1,36 +1,26 @@
-import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Index from './pages/Index';
-import Login from './pages/Login';
+import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import ProtectedRoutes from "@/components/routing/ProtectedRoutes";
 
-// Create a client
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+function App() {
+  const { session, loading } = useAuthSession();
 
-// Wrap the function component with React.FC type
-const App: React.FC = () => {
+  // Show loading state while checking authentication, but only briefly
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-dashboard-dark">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-          </Routes>
-          <Toaster />
-        </Router>
-      </QueryClientProvider>
-    </React.StrictMode>
+    <>
+      <ProtectedRoutes session={session} />
+      <Toaster />
+    </>
   );
-};
+}
 
 export default App;
