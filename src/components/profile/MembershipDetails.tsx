@@ -96,10 +96,10 @@ Your Sort Code: ${details.sortCode}
 
 To pay:
 
-Beneficiary Name: UKIM Welfare Trust
+Beneficiary Name: Pakistan Welfare Association
 Bank: HSBC Bank
-Sort Code: 40-20-26
-Account Number: 91567160
+Sort Code: 40-15-34
+Account Number: 41024892
 Reference: ${memberProfile.member_number}
 
 Amount: £40.00
