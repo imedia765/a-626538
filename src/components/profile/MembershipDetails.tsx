@@ -2,8 +2,10 @@ import { Member } from "@/types/member";
 import RoleBadge from "./RoleBadge";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, Banknote } from "lucide-react";
+import { CreditCard, Banknote, FileText } from "lucide-react";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
 
 interface MembershipDetailsProps {
   memberProfile: Member;
@@ -13,6 +15,8 @@ interface MembershipDetailsProps {
 type AppRole = 'admin' | 'collector' | 'member';
 
 const MembershipDetails = ({ memberProfile, userRole }: MembershipDetailsProps) => {
+  const { toast } = useToast();
+
   const { data: userRoles } = useQuery({
     queryKey: ['userRoles', memberProfile.auth_user_id],
     queryFn: async () => {
@@ -53,6 +57,64 @@ const MembershipDetails = ({ memberProfile, userRole }: MembershipDetailsProps) 
     },
     enabled: !!memberProfile.member_number
   });
+
+  const handleGenerateStandingOrder = () => {
+    // Calculate next year's payment date
+    const nextYear = new Date();
+    nextYear.setFullYear(nextYear.getFullYear() + 1);
+    
+    // Format the date as DD/MM/YYYY
+    const paymentDate = format(nextYear, 'dd/MM/yyyy');
+    
+    // Create standing order text
+    const standingOrderText = `
+HSBC Bank Standing Order Form
+
+To: (Your bank name and address)
+_________________________________
+_________________________________
+
+Please set up a Standing Order from my account:
+
+Your Name: ${memberProfile.full_name}
+Your Address: ${memberProfile.address || ''} ${memberProfile.postcode || ''}
+
+Your Account Number: ________________
+Your Sort Code: ____-____-____
+
+To pay:
+
+Beneficiary Name: UKIM Welfare Trust
+Bank: HSBC Bank
+Sort Code: 40-20-26
+Account Number: 91567160
+Reference: ${memberProfile.member_number}
+
+Amount: £40.00
+Frequency: Annually
+First Payment Date: ${paymentDate}
+Until Further Notice
+
+Signature: _________________
+Date: _________________
+
+Please return this form to your bank.
+`;
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(standingOrderText).then(() => {
+      toast({
+        title: "Standing Order Form Generated",
+        description: "The form has been copied to your clipboard. You can now paste it into a document.",
+      });
+    }).catch(() => {
+      toast({
+        title: "Could not copy automatically",
+        description: "Please manually copy the form text.",
+        variant: "destructive",
+      });
+    });
+  };
 
   const getHighestRole = (roles: AppRole[]): AppRole | null => {
     if (roles?.includes('admin')) return 'admin';
@@ -97,6 +159,7 @@ const MembershipDetails = ({ memberProfile, userRole }: MembershipDetailsProps) 
             <span className="text-dashboard-accent1">{memberProfile.collector}</span>
           </div>
         )}
+        
         <div className="text-dashboard-text flex items-center gap-2">
           <span className="text-dashboard-accent2">Type:</span>
           <span className="flex items-center gap-2">
@@ -105,12 +168,18 @@ const MembershipDetails = ({ memberProfile, userRole }: MembershipDetailsProps) 
           </span>
         </div>
         
+        {/* Standing Order Button */}
+        <Button
+          onClick={handleGenerateStandingOrder}
+          variant="outline"
+          className="w-full mt-4 bg-dashboard-accent2/10 hover:bg-dashboard-accent2/20 text-dashboard-accent2 border-dashboard-accent2/20"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          Generate Standing Order Form
+        </Button>
+        
         {/* Last Payment Status */}
         <div className="text-dashboard-text p-4 bg-dashboard-card rounded-lg border border-dashboard-cardBorder mt-4">
-          <div className="flex items-center gap-2 mb-3">
-            <CreditCard className="w-5 h-5 text-dashboard-accent1" />
-            <span className="text-white text-lg font-medium">Last Payment</span>
-          </div>
           {lastPayment ? (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
