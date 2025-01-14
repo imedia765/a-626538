@@ -6,7 +6,6 @@ import ProtectedRoutes from "@/components/routing/ProtectedRoutes";
 function App() {
   const { session, loading } = useAuthSession();
 
-  // Show loading state while checking authentication, but only briefly
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-dashboard-dark">

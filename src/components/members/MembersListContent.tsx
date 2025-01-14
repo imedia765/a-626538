@@ -3,7 +3,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Accordion } from "@/components/ui/accordion";
 import MemberCard from './MemberCard';
 import PaginationControls from '../ui/pagination/PaginationControls';
-import { usePagination } from '@/hooks/usePagination';
 import { Loader2 } from "lucide-react";
 
 interface MembersListContentProps {
@@ -12,9 +11,10 @@ interface MembersListContentProps {
   userRole: string | null;
   onPaymentClick: (memberId: string) => void;
   onEditClick: (memberId: string) => void;
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
 }
-
-const ITEMS_PER_PAGE = 20;
 
 const MembersListContent = ({
   members,
@@ -22,30 +22,20 @@ const MembersListContent = ({
   userRole,
   onPaymentClick,
   onEditClick,
+  currentPage,
+  totalPages,
+  onPageChange,
 }: MembersListContentProps) => {
-  const {
-    currentPage,
-    totalPages,
-    from,
-    to,
-    setCurrentPage,
-  } = usePagination({
-    totalItems: members.length,
-    itemsPerPage: ITEMS_PER_PAGE,
-  });
-
-  const paginatedMembers = members.slice(from, to + 1);
-
   return (
     <div className="space-y-4">
-      <ScrollArea className="h-[600px] w-full rounded-md">
+      <ScrollArea className="h-[calc(100vh-16rem)] w-full rounded-md">
         {isLoading ? (
           <div className="flex justify-center items-center h-32">
             <Loader2 className="h-8 w-8 animate-spin text-dashboard-accent1" />
           </div>
         ) : (
-          <Accordion type="single" collapsible className="space-y-4">
-            {paginatedMembers.map((member) => (
+          <Accordion type="single" collapsible className="space-y-4 px-1">
+            {members.map((member) => (
               <MemberCard
                 key={member.id}
                 member={member}
@@ -58,12 +48,12 @@ const MembersListContent = ({
         )}
       </ScrollArea>
       
-      {!isLoading && members.length > 0 && (
-        <div className="py-4">
+      {!isLoading && members.length > 0 && totalPages > 1 && (
+        <div className="py-4 overflow-x-auto">
           <PaginationControls
             currentPage={currentPage}
             totalPages={totalPages}
-            onPageChange={setCurrentPage}
+            onPageChange={onPageChange}
           />
         </div>
       )}

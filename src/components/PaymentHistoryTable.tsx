@@ -1,34 +1,45 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { format } from "date-fns";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface Payment {
-  id: string;
-  date: string;
-  type: string;
-  amount: number;
-  status: string;
-}
+import { Payment } from "./payment-history/types";
+import { CollectorPaymentsList } from "./payment-history/CollectorPaymentsList";
+import { MemberPaymentsList } from "./payment-history/MemberPaymentsList";
 
 const PaymentHistoryTable = () => {
   const { toast } = useToast();
 
+  const { data: userRole } = useQuery({
+    queryKey: ['user-role'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('No user found in role check');
+        return null;
+      }
+
+      const { data: roleData, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching user role:', error);
+        return null;
+      }
+
+      console.log('User role data:', roleData);
+      return roleData?.role;
+    },
+  });
+
   const { data: payments = [], isLoading, error } = useQuery({
-    queryKey: ['payment-history'],
+    queryKey: ['payment-history', userRole],
     queryFn: async () => {
       console.log('Starting payment history fetch...');
+      console.log('User role:', userRole);
       
-      // Get current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
@@ -40,19 +51,8 @@ const PaymentHistoryTable = () => {
         console.error('No user session found');
         throw new Error('No user logged in');
       }
-      
-      console.log('Session found for user:', session.user.id);
 
-      // Get user metadata
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error('User fetch error:', userError);
-        throw new Error('Failed to get user data');
-      }
-
-      const memberNumber = user?.user_metadata?.member_number;
-      console.log('Member number from metadata:', memberNumber);
+      const memberNumber = session.user.user_metadata.member_number;
       
       if (!memberNumber) {
         console.error('No member number found in user metadata');
@@ -64,10 +64,69 @@ const PaymentHistoryTable = () => {
         throw new Error('Member number not found');
       }
 
-      // Fetch payment requests
+      if (userRole === 'collector') {
+        console.log('Fetching collector payments for member number:', memberNumber);
+        
+        const { data: collectorData, error: collectorError } = await supabase
+          .from('members_collectors')
+          .select('id')
+          .eq('member_number', memberNumber)
+          .maybeSingle();
+
+        if (collectorError) {
+          console.error('Error fetching collector:', collectorError);
+          throw collectorError;
+        }
+
+        if (!collectorData) {
+          console.error('No collector found for member number:', memberNumber);
+          return [];
+        }
+
+        console.log('Found collector:', collectorData);
+
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from('payment_requests')
+          .select(`
+            *,
+            members!payment_requests_member_id_fkey (
+              full_name,
+              member_number
+            )
+          `)
+          .eq('collector_id', collectorData.id)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false });
+
+        if (paymentsError) {
+          console.error('Error fetching payments:', paymentsError);
+          throw paymentsError;
+        }
+
+        console.log('Collector payments:', paymentsData);
+        
+        return paymentsData?.map(payment => ({
+          id: payment.id,
+          date: payment.created_at,
+          type: payment.payment_type,
+          amount: payment.amount,
+          status: payment.status,
+          member_name: payment.members?.full_name,
+          member_number: payment.members?.member_number,
+          payment_number: payment.payment_number
+        })) || [];
+      }
+      
+      console.log('Fetching member payments for:', memberNumber);
       const { data, error: paymentsError } = await supabase
         .from('payment_requests')
-        .select('*')
+        .select(`
+          *,
+          members!payment_requests_member_id_fkey (
+            full_name,
+            member_number
+          )
+        `)
         .eq('member_number', memberNumber)
         .order('created_at', { ascending: false });
 
@@ -76,20 +135,17 @@ const PaymentHistoryTable = () => {
         throw paymentsError;
       }
 
-      console.log('Fetched payment requests:', data);
-
-      if (!data || data.length === 0) {
-        console.log('No payment records found for member:', memberNumber);
-      }
-
-      // Transform the data
-      return data.map(payment => ({
+      console.log('Member payments:', data);
+      return data?.map(payment => ({
         id: payment.id,
         date: payment.created_at,
         type: payment.payment_type,
         amount: payment.amount,
-        status: payment.status
-      }));
+        status: payment.status,
+        member_name: payment.members?.full_name,
+        member_number: payment.members?.member_number,
+        payment_number: payment.payment_number
+      })) || [];
     },
     retry: 1,
   });
@@ -97,8 +153,8 @@ const PaymentHistoryTable = () => {
   if (isLoading) {
     return (
       <div className="glass-card p-4">
-        <h3 className="text-xl font-semibold mb-4 text-white">Payment History</h3>
-        <div className="flex items-center gap-2 text-white">
+        <h3 className="text-xl font-semibold mb-4 text-dashboard-highlight">Payment History</h3>
+        <div className="flex items-center gap-2 text-dashboard-highlight">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Loading payment history...</span>
         </div>
@@ -109,7 +165,7 @@ const PaymentHistoryTable = () => {
   if (error) {
     return (
       <div className="glass-card p-4">
-        <h3 className="text-xl font-semibold mb-4 text-white">Payment History</h3>
+        <h3 className="text-xl font-semibold mb-4 text-dashboard-highlight">Payment History</h3>
         <div className="flex items-center gap-2 text-red-500">
           <AlertCircle className="h-4 w-4" />
           <span>Error loading payment history: {error.message}</span>
@@ -121,8 +177,8 @@ const PaymentHistoryTable = () => {
   if (!payments.length) {
     return (
       <div className="glass-card p-4">
-        <h3 className="text-xl font-semibold mb-4 text-white">Payment History</h3>
-        <div className="flex items-center gap-2 text-white">
+        <h3 className="text-xl font-semibold mb-4 text-dashboard-highlight">Payment History</h3>
+        <div className="flex items-center gap-2 text-dashboard-highlight">
           <AlertCircle className="h-4 w-4" />
           <span>No payment history found. Please check if you have any pending payments or contact your collector for assistance.</span>
         </div>
@@ -132,31 +188,15 @@ const PaymentHistoryTable = () => {
 
   return (
     <div className="glass-card p-4">
-      <h3 className="text-xl font-semibold mb-4 text-white">Payment History</h3>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.map((payment) => (
-              <TableRow key={payment.id}>
-                <TableCell>{format(new Date(payment.date), 'PPP')}</TableCell>
-                <TableCell>{payment.type}</TableCell>
-                <TableCell className="text-dashboard-accent3">
-                  <span className="text-dashboard-accent3">£</span>{payment.amount}
-                </TableCell>
-                <TableCell>{payment.status}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <h3 className="text-xl font-semibold mb-4 text-dashboard-highlight">
+        {userRole === 'collector' ? 'Pending Payments - Members' : 'Payment History'}
+      </h3>
+      
+      {userRole === 'collector' ? (
+        <CollectorPaymentsList payments={payments} />
+      ) : (
+        <MemberPaymentsList payments={payments} />
+      )}
     </div>
   );
 };

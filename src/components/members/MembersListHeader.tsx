@@ -1,51 +1,48 @@
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
-import { useState } from "react";
-import EditProfileDialog from "./EditProfileDialog";
 import { Member } from "@/types/member";
+import { Download } from "lucide-react";
 
 interface MembersListHeaderProps {
   userRole: string | null;
-  onPrint: () => void;
   hasMembers: boolean;
-  collectorInfo?: { name: string } | null;
-  selectedMember: Member | null;
+  collectorInfo: any;
+  selectedMember: Member | undefined;
   onProfileUpdated: () => void;
+  onPrint: () => void;
+  members: Member[];
 }
 
-const MembersListHeader = ({ 
-  userRole, 
-  onPrint, 
-  hasMembers, 
-  collectorInfo,
-  selectedMember,
-  onProfileUpdated
+const MembersListHeader = ({
+  userRole,
+  hasMembers,
+  members
 }: MembersListHeaderProps) => {
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-
-  if (userRole !== 'collector' || !hasMembers) return null;
-
   return (
-    <>
-      <div className="flex justify-end mb-4 gap-2">
-        <Button
-          onClick={onPrint}
-          className="flex items-center gap-2 bg-dashboard-accent1 hover:bg-dashboard-accent1/80"
-        >
-          <Printer className="w-4 h-4" />
-          Print Members List
-        </Button>
+    <header className="space-y-2 sm:space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-medium mb-1 sm:mb-2 text-white">Members</h1>
+          <p className="text-dashboard-muted text-sm sm:text-base">View and manage member information</p>
+        </div>
+        
+        {hasMembers && userRole === 'admin' && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto whitespace-nowrap"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Members
+          </Button>
+        )}
       </div>
 
-      {selectedMember && (
-        <EditProfileDialog
-          member={selectedMember}
-          open={editDialogOpen}
-          onOpenChange={setEditDialogOpen}
-          onProfileUpdated={onProfileUpdated}
-        />
+      {members.length > 0 && (
+        <div className="text-sm text-dashboard-muted">
+          Showing {members.length} member{members.length !== 1 ? 's' : ''}
+        </div>
       )}
-    </>
+    </header>
   );
 };
 

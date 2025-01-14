@@ -13,10 +13,10 @@ const LoginButton = ({ loading }: LoginButtonProps) => {
       disabled={loading}
     >
       {loading ? (
-        <>
-          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          Logging in...
-        </>
+        <div className="flex items-center justify-center space-x-2">
+          <Loader2 className="h-4 w-4 animate-spin text-white" />
+          <span>Logging in...</span>
+        </div>
       ) : (
         'Login'
       )}

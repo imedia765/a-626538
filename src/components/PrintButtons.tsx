@@ -6,6 +6,7 @@ import { generateMembersPDF, generateCollectorZip } from '@/utils/pdfGenerator';
 import PDFGenerationProgress from "./PDFGenerationProgress";
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from "@/integrations/supabase/client";
+import DownloadButtons from "./print/DownloadButtons";
 
 type Member = Database['public']['Tables']['members']['Row'];
 
@@ -124,7 +125,7 @@ const PrintButtons = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
       {isGenerating && (
         <PDFGenerationProgress 
           current={progress.current}
@@ -134,23 +135,29 @@ const PrintButtons = ({
       )}
       
       {collectorName ? (
-        <Button
-          onClick={() => handlePrintCollector(collectorName)}
-          className="flex items-center gap-2 bg-dashboard-accent2 hover:bg-dashboard-accent2/80"
-          disabled={isGenerating}
-        >
-          <Printer className="w-4 h-4" />
-          Print Members
-        </Button>
+        <div className="flex w-full gap-2">
+          <Button
+            onClick={() => handlePrintCollector(collectorName)}
+            className="flex-1 items-center gap-2 bg-dashboard-accent2 hover:bg-dashboard-accent2/80"
+            disabled={isGenerating}
+          >
+            <Printer className="w-4 h-4" />
+            Print Members
+          </Button>
+          {allMembers && <DownloadButtons members={allMembers} collectorName={collectorName} className="flex-1" />}
+        </div>
       ) : (
-        <Button 
-          onClick={handlePrintAll}
-          className="flex items-center gap-2 bg-dashboard-accent1 hover:bg-dashboard-accent1/80"
-          disabled={isGenerating}
-        >
-          <Printer className="w-4 h-4" />
-          {isGenerating ? 'Generating...' : 'Print All Members'}
-        </Button>
+        <div className="flex w-full gap-2">
+          <Button 
+            onClick={handlePrintAll}
+            className="flex-1 items-center gap-2 bg-dashboard-accent1 hover:bg-dashboard-accent1/80"
+            disabled={isGenerating}
+          >
+            <Printer className="w-4 h-4" />
+            {isGenerating ? 'Generating...' : 'Print All Members'}
+          </Button>
+          {allMembers && <DownloadButtons members={allMembers} className="flex-1" />}
+        </div>
       )}
     </div>
   );

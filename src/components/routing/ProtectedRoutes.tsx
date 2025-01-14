@@ -16,9 +16,13 @@ const AuthWrapper = ({ session }: { session: Session | null }) => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
-      if (event === 'SIGNED_OUT') {
+      console.log('Auth state change in router:', event);
+      
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' && !currentSession) {
+        console.log('User signed out or token refresh failed, redirecting to login');
         navigate('/login', { replace: true });
-      } else if (event === 'SIGNED_IN') {
+      } else if (event === 'SIGNED_IN' && currentSession) {
+        console.log('User signed in, redirecting to home');
         navigate('/', { replace: true });
       }
     });

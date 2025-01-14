@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from '@/integrations/supabase/types';
-import { UserCheck, Users, CreditCard, Link2, AlertCircle } from 'lucide-react';
+import { UserCheck, Users } from 'lucide-react';
 import {
   Accordion,
   AccordionContent,
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/accordion";
 import CollectorMembers from "@/components/CollectorMembers";
 import PrintButtons from "@/components/PrintButtons";
-import { usePagination } from '@/hooks/usePagination';
+import { useState } from 'react';
 import PaginationControls from './ui/pagination/PaginationControls';
 
 type MemberCollector = Database['public']['Tables']['members_collectors']['Row'];
@@ -19,6 +19,8 @@ type Member = Database['public']['Tables']['members']['Row'];
 const ITEMS_PER_PAGE = 10;
 
 const CollectorsList = () => {
+  const [page, setPage] = useState(1);
+
   const { data: allMembers } = useQuery({
     queryKey: ['all_members'],
     queryFn: async () => {
@@ -32,11 +34,15 @@ const CollectorsList = () => {
     },
   });
 
-  const { data: collectors, isLoading: collectorsLoading, error: collectorsError } = useQuery({
-    queryKey: ['members_collectors'],
+  const { data: paymentsData, isLoading: collectorsLoading, error: collectorsError } = useQuery({
+    queryKey: ['members_collectors', page],
     queryFn: async () => {
       console.log('Fetching collectors from members_collectors...');
-      const { data: collectorsData, error: collectorsError } = await supabase
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+
+      // Get paginated collectors data with count
+      const { data: collectorsData, error: collectorsError, count } = await supabase
         .from('members_collectors')
         .select(`
           id,
@@ -49,15 +55,16 @@ const CollectorsList = () => {
           created_at,
           updated_at,
           member_number
-        `)
-        .order('number', { ascending: true });
+        `, { count: 'exact' })
+        .order('number', { ascending: true })
+        .range(from, to);
       
       if (collectorsError) {
         console.error('Error fetching collectors:', collectorsError);
         throw collectorsError;
       }
 
-      if (!collectorsData) return [];
+      if (!collectorsData) return { data: [], count: 0 };
 
       const collectorsWithCounts = await Promise.all(collectorsData.map(async (collector) => {
         const { count } = await supabase
@@ -71,22 +78,15 @@ const CollectorsList = () => {
         };
       }));
 
-      return collectorsWithCounts;
+      return {
+        data: collectorsWithCounts,
+        count: count || 0
+      };
     },
   });
 
-  const {
-    currentPage,
-    totalPages,
-    from,
-    to,
-    setCurrentPage,
-  } = usePagination({
-    totalItems: collectors?.length || 0,
-    itemsPerPage: ITEMS_PER_PAGE,
-  });
-
-  const paginatedCollectors = collectors?.slice(from, to + 1) || [];
+  const collectors = paymentsData?.data || [];
+  const totalPages = Math.ceil((paymentsData?.count || 0) / ITEMS_PER_PAGE);
 
   if (collectorsLoading) return <div className="text-center py-4">Loading collectors...</div>;
   if (collectorsError) return <div className="text-center py-4 text-red-500">Error loading collectors: {collectorsError.message}</div>;
@@ -99,7 +99,7 @@ const CollectorsList = () => {
       </div>
 
       <Accordion type="single" collapsible className="space-y-4">
-        {paginatedCollectors.map((collector) => (          
+        {collectors.map((collector) => (          
           <AccordionItem
             key={collector.id}
             value={collector.id}
@@ -148,12 +148,12 @@ const CollectorsList = () => {
         ))}
       </Accordion>
 
-      {collectors.length > ITEMS_PER_PAGE && (
+      {totalPages > 1 && (
         <div className="py-4">
           <PaginationControls
-            currentPage={currentPage}
+            currentPage={page}
             totalPages={totalPages}
-            onPageChange={setCurrentPage}
+            onPageChange={setPage}
           />
         </div>
       )}

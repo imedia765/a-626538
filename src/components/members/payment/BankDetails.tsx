@@ -1,12 +1,36 @@
-const BankDetails = () => {
+import { Card } from "@/components/ui/card";
+
+interface BankDetailsProps {
+  memberNumber?: string;
+}
+
+const BankDetails = ({ memberNumber }: BankDetailsProps) => {
   return (
-    <div className="p-4 bg-dashboard-dark/50 rounded-lg border border-dashboard-accent1/20">
-      <h3 className="text-dashboard-accent2 font-medium mb-2">Bank Details</h3>
-      <div className="space-y-2 text-dashboard-text">
-        <p>HSBC Pakistan Welfare Association</p>
-        <p>Burton In Trent</p>
-        <p>Sort Code: 40-15-31</p>
-        <p>Account: 41024892</p>
+    <div className="p-6 bg-dashboard-dark/80 rounded-lg border-2 border-dashboard-accent2/30 shadow-lg">
+      <h3 className="text-xl font-medium text-dashboard-highlight mb-4">Bank Details</h3>
+      <div className="space-y-4">
+        <div>
+          <p className="text-dashboard-muted">Bank Name</p>
+          <p className="text-dashboard-text font-medium">HSBC Bank</p>
+        </div>
+        <div>
+          <p className="text-dashboard-muted">Account Name</p>
+          <p className="text-dashboard-text font-medium">Pakistan Welfare Association</p>
+        </div>
+        <div>
+          <p className="text-dashboard-muted">Sort Code</p>
+          <p className="text-dashboard-text font-semibold text-xl text-blue-400">40-15-34</p>
+        </div>
+        <div>
+          <p className="text-dashboard-muted">Account Number</p>
+          <p className="text-dashboard-text font-semibold text-xl text-blue-400">41024892</p>
+        </div>
+        <div>
+          <p className="text-dashboard-muted">Reference</p>
+          <p className="text-dashboard-text font-semibold text-xl text-blue-400">
+            {memberNumber || '[Your Member Number]'}
+          </p>
+        </div>
       </div>
     </div>
   );

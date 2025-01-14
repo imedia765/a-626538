@@ -4,6 +4,7 @@ interface TotalCountItem {
   count: number | string;
   label: string;
   icon?: React.ReactNode;
+  onPrint?: () => void;
 }
 
 interface TotalCountProps {
@@ -12,17 +13,22 @@ interface TotalCountProps {
   count?: number | string;
   label?: string;
   icon?: React.ReactNode;
+  onPrint?: () => void;
 }
 
-const TotalCount = ({ items, count, label, icon }: TotalCountProps) => {
+const TotalCount = ({ items, count, label, icon, onPrint }: TotalCountProps) => {
   // If legacy props are provided, convert them to items format
-  const displayItems = items || (count !== undefined ? [{ count, label: label || '', icon }] : []);
+  const displayItems = items || (count !== undefined ? [{ count, label: label || '', icon, onPrint }] : []);
 
   return (
     <div className="glass-card p-2 sm:p-3 md:p-4">
       <div className="flex items-center gap-2 sm:gap-4 md:gap-8">
         {displayItems.map((item, index) => (
-          <div key={index} className="flex items-center gap-2 sm:gap-3">
+          <div 
+            key={index} 
+            className="flex items-center gap-2 sm:gap-3 cursor-pointer" 
+            onClick={item.onPrint}
+          >
             {item.icon}
             <div>
               <p className="text-xs sm:text-sm text-dashboard-muted line-clamp-1">{item.label}</p>

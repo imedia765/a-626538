@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
+import { clearAuthState, verifyMember, getAuthCredentials, handleSignInError } from './utils/authUtils';
+import { updateMemberWithAuthId, addMemberRole } from './utils/memberUtils';
 
 export const useLoginForm = () => {
   const [memberNumber, setMemberNumber] = useState('');
@@ -13,37 +15,17 @@ export const useLoginForm = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return;
+    if (loading || !memberNumber.trim()) return;
     
-    setLoading(true);
-    const isMobile = window.innerWidth <= 768;
-    console.log('Starting login process on device type:', isMobile ? 'mobile' : 'desktop');
-
     try {
-      // First, verify member exists and is active
-      console.log('Verifying member:', memberNumber);
-      const { data: members, error: memberError } = await supabase
-        .from('members')
-        .select('id, member_number, status')
-        .eq('member_number', memberNumber)
-        .eq('status', 'active')
-        .limit(1);
+      setLoading(true);
+      const isMobile = window.innerWidth <= 768;
+      console.log('Starting login process on device type:', isMobile ? 'mobile' : 'desktop');
 
-      if (memberError) {
-        console.error('Member verification error:', memberError);
-        throw memberError;
-      }
-
-      if (!members || members.length === 0) {
-        throw new Error('Member not found or inactive');
-      }
-
-      const member = members[0];
-      console.log('Member found:', member);
-
-      const email = `${memberNumber.toLowerCase()}@temp.com`;
-      const password = memberNumber;
-
+      // Skip clearing auth state on login attempt
+      const member = await verifyMember(memberNumber);
+      const { email, password } = getAuthCredentials(memberNumber);
+      
       console.log('Attempting sign in with:', { email });
       
       // Try to sign in
@@ -72,30 +54,8 @@ export const useLoginForm = () => {
         }
 
         if (signUpData.user) {
-          console.log('Signup successful, updating member with auth_user_id');
-          
-          // Update member with auth_user_id
-          const { error: updateError } = await supabase
-            .from('members')
-            .update({ auth_user_id: signUpData.user.id })
-            .eq('id', member.id);
-
-          if (updateError) {
-            console.error('Error updating member with auth_user_id:', updateError);
-            throw updateError;
-          }
-
-          // Add default member role
-          const { error: roleError } = await supabase
-            .from('user_roles')
-            .insert([
-              { user_id: signUpData.user.id, role: 'member' }
-            ]);
-
-          if (roleError) {
-            console.error('Error adding member role:', roleError);
-            throw roleError;
-          }
+          await updateMemberWithAuthId(member.id, signUpData.user.id);
+          await addMemberRole(signUpData.user.id);
 
           console.log('Member updated and role assigned, attempting final sign in');
           
@@ -115,8 +75,7 @@ export const useLoginForm = () => {
           }
         }
       } else if (signInError) {
-        console.error('Sign in error:', signInError);
-        throw signInError;
+        await handleSignInError(signInError, email, password);
       }
 
       // Clear any existing queries before proceeding
@@ -138,8 +97,6 @@ export const useLoginForm = () => {
       }
 
       console.log('Session established successfully');
-
-      // Invalidate all queries to refresh data
       await queryClient.invalidateQueries();
 
       toast({
@@ -147,7 +104,7 @@ export const useLoginForm = () => {
         description: "Welcome back!",
       });
 
-      // Use replace to prevent back button issues on mobile
+      // Use replace to prevent back button issues
       if (isMobile) {
         window.location.href = '/';
       } else {
@@ -155,8 +112,6 @@ export const useLoginForm = () => {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      // Clear any existing session
-      await supabase.auth.signOut();
       
       let errorMessage = 'An unexpected error occurred';
       
@@ -166,6 +121,8 @@ export const useLoginForm = () => {
         errorMessage = 'Invalid member number. Please try again.';
       } else if (error.message.includes('Email not confirmed')) {
         errorMessage = 'Please verify your email before logging in';
+      } else if (error.message.includes('refresh_token_not_found')) {
+        errorMessage = 'Session expired. Please try logging in again.';
       }
       
       toast({
