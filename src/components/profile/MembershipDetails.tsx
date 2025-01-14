@@ -215,60 +215,64 @@ Please return this form to your bank.`;
               Generate Standing Order Form
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] bg-dashboard-card border-dashboard-cardBorder">
             <DialogHeader>
-              <DialogTitle>Standing Order Form</DialogTitle>
+              <DialogTitle className="text-dashboard-text">Standing Order Form</DialogTitle>
             </DialogHeader>
-            <Alert className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="mb-4 bg-dashboard-accent1/10 border-dashboard-accent1/20">
+              <AlertCircle className="h-4 w-4 text-dashboard-accent1" />
+              <AlertDescription className="text-dashboard-text">
                 Please note: Standing orders can only be set up for next year's payment. This cannot be used for your current payment which must be paid directly to your collector.
               </AlertDescription>
             </Alert>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
-                <label htmlFor="bankName">Bank Name</label>
+                <label htmlFor="bankName" className="text-dashboard-text">Bank Name</label>
                 <Input
                   id="bankName"
                   value={bankDetails.bankName}
                   onChange={(e) => setBankDetails(prev => ({ ...prev, bankName: e.target.value }))}
                   placeholder="Enter your bank's name"
+                  className="bg-dashboard-card border-dashboard-cardBorder text-dashboard-text placeholder:text-dashboard-muted"
                 />
               </div>
               <div className="grid gap-2">
-                <label htmlFor="bankAddress">Bank Address</label>
+                <label htmlFor="bankAddress" className="text-dashboard-text">Bank Address</label>
                 <Input
                   id="bankAddress"
                   value={bankDetails.bankAddress}
                   onChange={(e) => setBankDetails(prev => ({ ...prev, bankAddress: e.target.value }))}
                   placeholder="Enter your bank's address"
+                  className="bg-dashboard-card border-dashboard-cardBorder text-dashboard-text placeholder:text-dashboard-muted"
                 />
               </div>
               <div className="grid gap-2">
-                <label htmlFor="accountNumber">Account Number</label>
+                <label htmlFor="accountNumber" className="text-dashboard-text">Account Number</label>
                 <Input
                   id="accountNumber"
                   value={bankDetails.accountNumber}
                   onChange={(e) => setBankDetails(prev => ({ ...prev, accountNumber: e.target.value }))}
                   placeholder="Enter your account number"
+                  className="bg-dashboard-card border-dashboard-cardBorder text-dashboard-text placeholder:text-dashboard-muted"
                 />
               </div>
               <div className="grid gap-2">
-                <label htmlFor="sortCode">Sort Code</label>
+                <label htmlFor="sortCode" className="text-dashboard-text">Sort Code</label>
                 <Input
                   id="sortCode"
                   value={bankDetails.sortCode}
                   onChange={(e) => setBankDetails(prev => ({ ...prev, sortCode: e.target.value }))}
                   placeholder="XX-XX-XX"
+                  className="bg-dashboard-card border-dashboard-cardBorder text-dashboard-text placeholder:text-dashboard-muted"
                 />
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={handlePrint}>
+              <Button variant="outline" onClick={handlePrint} className="bg-dashboard-card hover:bg-dashboard-cardHover text-dashboard-text border-dashboard-cardBorder">
                 <Printer className="w-4 h-4 mr-2" />
                 Print
               </Button>
-              <Button onClick={handleGenerateStandingOrder}>
+              <Button onClick={handleGenerateStandingOrder} className="bg-dashboard-accent1 hover:bg-dashboard-accent1/80 text-white">
                 Copy to Clipboard
               </Button>
             </div>
