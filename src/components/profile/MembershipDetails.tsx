@@ -2,10 +2,13 @@ import { Member } from "@/types/member";
 import RoleBadge from "./RoleBadge";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, Banknote, FileText } from "lucide-react";
+import { CreditCard, Banknote, FileText, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 
 interface MembershipDetailsProps {
   memberProfile: Member;
@@ -14,8 +17,22 @@ interface MembershipDetailsProps {
 
 type AppRole = 'admin' | 'collector' | 'member';
 
+interface BankDetails {
+  accountNumber: string;
+  sortCode: string;
+  bankName: string;
+  bankAddress: string;
+}
+
 const MembershipDetails = ({ memberProfile, userRole }: MembershipDetailsProps) => {
   const { toast } = useToast();
+  const [bankDetails, setBankDetails] = useState<BankDetails>({
+    accountNumber: '',
+    sortCode: '',
+    bankName: '',
+    bankAddress: '',
+  });
+  const [showDialog, setShowDialog] = useState(false);
 
   const { data: userRoles } = useQuery({
     queryKey: ['userRoles', memberProfile.auth_user_id],
@@ -58,29 +75,24 @@ const MembershipDetails = ({ memberProfile, userRole }: MembershipDetailsProps) 
     enabled: !!memberProfile.member_number
   });
 
-  const handleGenerateStandingOrder = () => {
-    // Calculate next year's payment date
+  const generateStandingOrderText = (details: BankDetails) => {
     const nextYear = new Date();
     nextYear.setFullYear(nextYear.getFullYear() + 1);
-    
-    // Format the date as DD/MM/YYYY
     const paymentDate = format(nextYear, 'dd/MM/yyyy');
     
-    // Create standing order text
-    const standingOrderText = `
+    return `
 HSBC Bank Standing Order Form
 
-To: (Your bank name and address)
-_________________________________
-_________________________________
+To: ${details.bankName}
+${details.bankAddress}
 
 Please set up a Standing Order from my account:
 
 Your Name: ${memberProfile.full_name}
 Your Address: ${memberProfile.address || ''} ${memberProfile.postcode || ''}
 
-Your Account Number: ________________
-Your Sort Code: ____-____-____
+Your Account Number: ${details.accountNumber}
+Your Sort Code: ${details.sortCode}
 
 To pay:
 
@@ -98,15 +110,39 @@ Until Further Notice
 Signature: _________________
 Date: _________________
 
-Please return this form to your bank.
-`;
+Please return this form to your bank.`;
+  };
 
-    // Copy to clipboard
-    navigator.clipboard.writeText(standingOrderText).then(() => {
+  const handlePrint = () => {
+    const printWindow = window.open('', '', 'width=800,height=600');
+    if (printWindow) {
+      const formContent = generateStandingOrderText(bankDetails);
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Standing Order Form</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; white-space: pre-wrap; }
+            </style>
+          </head>
+          <body>
+            ${formContent}
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const handleGenerateStandingOrder = () => {
+    const formContent = generateStandingOrderText(bankDetails);
+    navigator.clipboard.writeText(formContent).then(() => {
       toast({
         title: "Standing Order Form Generated",
         description: "The form has been copied to your clipboard. You can now paste it into a document.",
       });
+      setShowDialog(false);
     }).catch(() => {
       toast({
         title: "Could not copy automatically",
@@ -168,17 +204,71 @@ Please return this form to your bank.
           </span>
         </div>
         
-        {/* Standing Order Button */}
-        <Button
-          onClick={handleGenerateStandingOrder}
-          variant="outline"
-          className="w-full mt-4 bg-dashboard-accent2/10 hover:bg-dashboard-accent2/20 text-dashboard-accent2 border-dashboard-accent2/20"
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          Generate Standing Order Form
-        </Button>
+        {/* Standing Order Dialog */}
+        <Dialog open={showDialog} onOpenChange={setShowDialog}>
+          <DialogTrigger asChild>
+            <Button
+              variant="outline"
+              className="w-full mt-4 bg-dashboard-accent2/10 hover:bg-dashboard-accent2/20 text-dashboard-accent2 border-dashboard-accent2/20"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Generate Standing Order Form
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Standing Order Form</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label htmlFor="bankName">Bank Name</label>
+                <Input
+                  id="bankName"
+                  value={bankDetails.bankName}
+                  onChange={(e) => setBankDetails(prev => ({ ...prev, bankName: e.target.value }))}
+                  placeholder="Enter your bank's name"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="bankAddress">Bank Address</label>
+                <Input
+                  id="bankAddress"
+                  value={bankDetails.bankAddress}
+                  onChange={(e) => setBankDetails(prev => ({ ...prev, bankAddress: e.target.value }))}
+                  placeholder="Enter your bank's address"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="accountNumber">Account Number</label>
+                <Input
+                  id="accountNumber"
+                  value={bankDetails.accountNumber}
+                  onChange={(e) => setBankDetails(prev => ({ ...prev, accountNumber: e.target.value }))}
+                  placeholder="Enter your account number"
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="sortCode">Sort Code</label>
+                <Input
+                  id="sortCode"
+                  value={bankDetails.sortCode}
+                  onChange={(e) => setBankDetails(prev => ({ ...prev, sortCode: e.target.value }))}
+                  placeholder="XX-XX-XX"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handlePrint}>
+                <Printer className="w-4 h-4 mr-2" />
+                Print
+              </Button>
+              <Button onClick={handleGenerateStandingOrder}>
+                Copy to Clipboard
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         
-        {/* Last Payment Status */}
         <div className="text-dashboard-text p-4 bg-dashboard-card rounded-lg border border-dashboard-cardBorder mt-4">
           {lastPayment ? (
             <div className="space-y-4">
