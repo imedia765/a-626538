@@ -2,12 +2,13 @@ import { Member } from "@/types/member";
 import RoleBadge from "./RoleBadge";
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
-import { CreditCard, Banknote, FileText, Printer } from "lucide-react";
+import { CreditCard, Banknote, FileText, Printer, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useState } from "react";
 
 interface MembershipDetailsProps {
@@ -204,7 +205,6 @@ Please return this form to your bank.`;
           </span>
         </div>
         
-        {/* Standing Order Dialog */}
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogTrigger asChild>
             <Button
@@ -219,6 +219,12 @@ Please return this form to your bank.`;
             <DialogHeader>
               <DialogTitle>Standing Order Form</DialogTitle>
             </DialogHeader>
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please note: Standing orders can only be set up for next year's payment. This cannot be used for your current payment which must be paid directly to your collector.
+              </AlertDescription>
+            </Alert>
             <div className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <label htmlFor="bankName">Bank Name</label>
